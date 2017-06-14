@@ -142,9 +142,7 @@ pbetap(ab=c((4+63-1),(4+17-1)), n=1, s=0:1)
 
 In this lab, we will conduct an analysis using a Bayesian logistic regression model. Data come from a cross-sectional study of 1,225 smokers over the age of 40. Each participant was assessed for chronic obstructive pulmonary disease (COPD), and characteristics of the type of cigarette they most frequently smoke were recorded. The objective of the study was to identify associations between COPD diagnosis and cigarette characteristics.
 
-Variables are coded as follows:
-
-- copd: 1 = COPD diagnosis, 0 = no COPD diagnosis
+We will use the following variables form this data set:
 
 - type: Type of cigarette, 1 = Menthol, 0 = Regular
 
@@ -156,3 +154,18 @@ Variables are coded as follows:
 
 - fltr: 1 = Filter, 0 = No filter
 
+- copd: 1 = COPD diagnosis, 0 = no COPD diagnosis
+
+
+You can download the data file and read it into R as follows:
+```{r, eval = TRUE}
+copd <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/copd.csv", header = T)
+```
+
+1. First carry out exploratory data analysis to summarize the variables in this data set.
+
+2. Next, let's use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter.
+
+```{r, eval = TRUE}
+
+```

@@ -112,15 +112,15 @@ What is the danger of using the prior in (b)?
     
 ```{r, eval = TRUE}
 triplot(prior=c(1,1),data=c(63,17), where = "topleft")
-
 ```
+    
     b. Beta(4,4) prior
     
 ```{r, eval = TRUE}
 triplot(prior=c(4,4),data=c(63,17), where = "topleft")
 ```
 
-3. Now suppos we want to test the hypothesis that the probability of response to our new treatment is 0.8. Assuming we have equipoise
+3. Now suppose we want to test the hypothesis that the probability of response to our new treatment is 0.8. Assuming we have equipoise
 regarding this hypothesis (i.e., we think it is equally likely to be true or false) and that our alternative hypothesis is that the
 response probability is equally likely to take any value from 0 to 1, what are the posterior probability of the null hypothesis and
 the Bayes Factor? Is there evidence for or against our null hypothesis?
@@ -128,3 +128,31 @@ the Bayes Factor? Is there evidence for or against our null hypothesis?
 ```{r, eval = TRUE}
 pbetat(p0=0.8, prob=0.5, ab=c(1,1), data=c(63,17))
 ```
+
+4. Finally, what if we want to estimate the posterior predictive distribution of response for a new patient based on the data that we have observed and assuming that we initially 
+had a Beta(4,4) prior for the probability of response. (Recall that by using a conjugate prior our posterior distribution is also Beta with parameters $a+y-1$ and $b+n-y-1$.)
+
+```{r, eval = TRUE}
+pbetap(ab=c((4+63-1),(4+17-1)), n=1, s=0:1)
+```
+
+***
+
+### Bayesian Regression Models
+
+In this lab, we will conduct an analysis using a Bayesian logistic regression model. Data come from a cross-sectional study of 1,225 smokers over the age of 40. Each participant was assessed for chronic obstructive pulmonary disease (COPD), and characteristics of the type of cigarette they most frequently smoke were recorded. The objective of the study was to identify associations between COPD diagnosis and cigarette characteristics.
+
+Variables are coded as follows:
+
+- copd: 1 = COPD diagnosis, 0 = no COPD diagnosis
+
+- type: Type of cigarette, 1 = Menthol, 0 = Regular
+
+- nic: Nicotine content, in mg
+
+- tar: Tar content, in mg
+
+- len: Length of cigarette, in mm
+
+- fltr: 1 = Filter, 0 = No filter
+

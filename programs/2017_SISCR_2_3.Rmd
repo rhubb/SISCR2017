@@ -1,5 +1,5 @@
 ---
-title: "Module 2: Bayesian Methods for Clinical Research: Introduction"
+title: "Module 2: Bayesian Methods for Clinical Research - Introduction"
 date: "July 24, 2017"
 author: "Rebecca Hubbard, Lurdes Inoue"
 output:
@@ -30,416 +30,101 @@ options(width = 400)
 
 ### Install R Packages
 - For this module we will be using the _LearnBayes_ and _arm_ packages
-- To use these packages you first need to install them: `r install.packages("LearnBayes","arm")`
-- You then need to load these libraries: `r library(LearnBayes)` `r library(arm)`
+- To use these packages you first need to install them using _install.packages()_
+```{r, eval=FALSE}
+install.packages("LearnBayes")
+install.packages("arm")
+```
+- You then need to load these libraries: 
+```{r, eval=TRUE}
+library(LearnBayes)
+library(arm)
+```
 - After the first time you install the packages on your computer, you will only need to load the libraries in the future 
 
 ***
 
-### RStudio
-RStudio is a free R user interface that makes development of code and integration of R files with reproducible research tools very straightforward. Open RStudio and explore its different windows. In the R Console, you can type and execute R commands. For example, try the commands in grey below (your output should be what appears in the white boxes):
-```{r, eval=TRUE}
-1+2
-c(1:5)
-cat("hello", "there")
-x <- rnorm(1000)
-hist(x)
+### Introduction to Bayesian Computing with Learn Bayes
+
+#### Discrete prior for a continuous parameter
+
+1. You are conducting a trial of a new treatment for thyroid cancer and have obtained results for the first 80 patients.63 patients 
+responded to treatment and 17 patients did not. We now want to obtain the posterior distribution for the probability of responding
+to this new treatment. Use R to generate the posterior distribution and compute the posterior median under the following priors:
+
+    a. Flat prior on [0,1]
+    
+```{r, eval = TRUE}
+#-- prior values for probability of response
+theta <- seq(0,1,length.out=99)
+
+#-- likelihood times prior
+prior <- rep(1/99, 99)
+product <- dbinom(x=63, size=80, prob=theta)*prior
+
+#-- posterior is the normalized likelihood times prior
+posterior <- product/sum(product)
+
+#-- plot posterior distribution
+plot(theta, posterior, type='h', xlab=expression(~theta))
+
+#-- posterior mean
+mean.post <- sum(theta*posterior)
+
+#-- cumulative posterior distribution
+cumulative.post <- cumsum(posterior)
+
+#-- median (approximate)
+median.post <- theta[max(which(cumulative.post <=0.50))]
 ```
 
-Above the R console, you can edit files with R code. To the right, there are windows that provide R output, current settings, history, package installation, and R documentation.
+    b. Flat prior on [0.8,1]
+    
+```{r, eval = TRUE}
+#-- prior values for probability of response
+theta <- seq(0.8,1,length.out=99)
 
+#-- likelihood times prior
+prior <- rep(1/99, 99)
+product <- dbinom(x=63, size=80, prob=theta)*prior
 
-### R Packages
-Many R functions one uses are in packages, which have to be installed and loaded prior to use. From the R console, install these packages from CRAN:
-```{r, eval=FALSE}
-install.packages("knitr")
-install.packages("rmarkdown")
+#-- posterior is the normalized likelihood times prior
+posterior <- product/sum(product)
+
+#-- plot posterior distribution
+plot(theta, posterior, type='h', xlab=expression(~theta))
+
+#-- posterior mean
+mean.post <- sum(theta*posterior)
+
+#-- cumulative posterior distribution
+cumulative.post <- cumsum(posterior)
+
+#-- median (approximate)
+median.post <- theta[max(which(cumulative.post <=0.50))]
+```    
+
+What is the danger of using the prior in (b)?    
+    
+2. Let's analyze the same set of results using _LearnBayes_. 
+
+    a. Flat prior on [0,1]
+    
+```{r, eval = TRUE}
+triplot(prior=c(1,1),data=c(63,17), where = "topleft")
+
+```
+    b. Beta(4,4) prior
+    
+```{r, eval = TRUE}
+triplot(prior=c(4,4),data=c(63,17), where = "topleft")
 ```
 
-In RStudio, packages can be installed interactively with the "Install Packages" tool. Once packages are installed, it is necessary to tell R about them each time you start an R session or include them within a script where they are used with the `library()` command:
-```{r, eval=FALSE}
-library(ggplot2)
-```
-To see loaded packages, use the `search()` funcion.
+3. Now suppos we want to test the hypothesis that the probability of response to our new treatment is 0.8. Assuming we have equipoise
+regarding this hypothesis (i.e., we think it is equally likely to be true or false) and that our alternative hypothesis is that the
+response probability is equally likely to take any value from 0 to 1, what are the posterior probability of the null hypothesis and
+the Bayes Factor? Is there evidence for or against our null hypothesis?
 
-
-### R Scripts
-Any text editor can be used to edit R files, including the one that is available in RStudio. _R script_ files (.R ending) consist of R functions, comments, and variables. To create a new R script file, use the RStudio new document icon in the upper-left-hand corner and select "R Script". In the new document, type the following:
-```{r, eval=FALSE}
-#Test R script
-x<-1
-y<-2
-x+y
-```
-Now save the file as `test.R`. To execute the code, click on "Run" above the text editor window. Note that the single line where the cursor is located is run by default. You can select multiple lines of code and then click "Run" to execute more than one line. To run the entire document, you can select "Source" instead. Alternatively, you can load an R script into your R environment at the command line by typing: 
-```{r, eval=FALSE}
-source("test.R")
-```
-Verify that the contents of `test.R` loaded properly by typing `x` and `y` at the command line. Now modify their values in the document and repeat the steps to see their values changed.
-
-
-### R Markdown
-R Markdown files (.Rmd ending) are enhanced .R files that are easily be made into visually appealing output documents that include text, graphics, and R code. Such documents are a great way to keep a "lab notebook" for projects. To create a new R Markdown file, use the RStudio new document icon in the upper-left-hand corner and select "R Markdown". Give it a title and author of your choice (or leave the default options) and click "OK". The new document has some sample text and commands that illustrate some of the main components of an R Markdown file. To save the R Markdown file, use File -> Save As, and then choose a `test.Rmd` and click "Save". Click on the "Knit HTML" icon at the top of the file to generate an html document based on the template and compare the two. If you'd like, repeat this with PDF and Word options to see other output formats. For these latter two to work, additional software must be installed on your computer.
-
-You can download an R Markdown [cheat sheet](https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf) and read more about it [here](http://rmarkdown.rstudio.com). To see all of the settings possible with html documents, you can read this [guide](http://rmarkdown.rstudio.com/html_document_format.html).
-
-***
-
-### Some Basic R Commands
-To assign values to variables, use `<-`, the assignment operator. You will also see `=` used in several cases, especially to assign entries within a braced list of expressions or function to avoid global assignment of variables. At the prompt, `<-` and `=` will behave equally.
-```{r eval=TRUE}
-x <- 1
-y <- c(1,4,8)
-print(x) 
-print(y)
-x 
-y
-```
-
-Notice the output of `x` and `print(x)` are the same. Typing `x` is called _auto-printing_, while `print(x)` is _explicit printing_. Sometimes explicit printing is needed if the default behavior of a call is not to print, for example, within functions or to output graphics. You can use `#` as a prefix to insert comments into code.
-```{r eval=TRUE}
-#List of colors:
-my.colors <- c("red", "yellow", "blue")
-print(my.colors)
-```
-
-### R Data Types
-There are five basic objects in R:
-
-- Character (i.e. text)
-- Numeric (i.e. real numbers)
-- Integer
-- Complex
-- Logical (TRUE/FALSE)
-
-To find out the type of object a variable x is, use `class(x)`. Each object can have atrtributes, including:
-
-- Names
-- Dimension
-- Class
-- Length
-
-To find out what other attributes a particular object has, use `attributes(x)`
-```{r eval=TRUE}
-class(x)
-class(colors)
-class(Inf) #Infinity
-class(1)
-class(1L) #Use the letter L after a number to specify that it is an integer
-```
-Missing values in R are denoted as `NA`, while undefined numeric values are denoted `NaN`. To find out if values are missing, use `is.na()`. Similarly, `is.nan()` can be used to test for `NaN`. `NA` can take on the class of the members of its data structure.
-```{r, eval=TRUE}
-class(NaN) #Undefined numeric value "not a number"
-0/0
-x <- 1
-is.na(x)
-!is.na(x) #Notice negation of is.na() by preceding with !
-y <- NA
-is.na(y)
-!is.na(y)
-```
-
-
-#### Factors
-Factors are similar to vectors, but they represent categorical data. Often used for statistical modeling since variables can keep an intuitive label, rather than have to be converted to numbers first. They can be ordered or unordered.
-```{r, eval=TRUE}
-x <- c("male", "male", "female", "female", "male")
-x
-table(x)
-y <- factor(x)
-#Notice the "Levels:" after the output
-y 
-table(y)
-```
-Although the factor looks like a text list, the underlying structure in R is numerical, which is necessary for statistical models. The underlying structure can be viewed with `unclass()`.
-```{r, eval=TRUE}
-unclass(y)
-```
-The order of factors can be set using the `levels` argument. The first argument is used as _baseline_ level when making statistical models.
-```{r, eval=TRUE}
-y2 <- factor(c("male", "male", "female", "female", "male"), levels=c("male", "female"))
-y2
-```
-
-
-#### Data Frames
-Data frames are like lists, in that they can be composed of entries of multiple classes, but they are 2-dimensional. This data structure is used very often for data analysis in R. Each column of a data frame must have elements of a single class, and each column must be of the same length.
-```{r, eval=TRUE}
-x <- data.frame(c(1:5), c("a","b","c","d","e"))
-x
-names(x) <- c("Numbers", "Letters")
-x
-dim(x)
-```
-Names are most commonly used with data frames, but these can also be helpful when used with other data types (i.e. vectors, lists, matrices).
-
-#### Diagnostics
-If you are working with an object and need to find out more about it, the `summary()` and `str()` functions come in handy. The `str()` command will show a brief display of an object's internal structure or give information about a function. The `summary()` command gives output that attempts to summarize variables.
-```{r, eval=TRUE}
-str(x)
-summary(x)
-str(y2)
-summary(y2)
-str(data.frame)
-str(read.table)
-```
-
-***
-
-### Subsetting
-When working with data frames and other R objects, we often want to extract portions of them or at least look at a portion of the loaded object to ensure things look right. This can be done with a few approaches depending on the data type. Recall from last time that elements of a vector can be extracted with a single bracket:
-```{r, eval=TRUE}
-x <- c(1:5)
-x[1]
-```
-Elements of a list can be extracted with double brackets or using names if these exist. Names are helpful when dealing with large lists or data frames when it is difficult to remember the order of items/columns.
-```{r, eval=TRUE}
-x <- list(1, "a", c(1:5))
-x
-x[1] #Returns same class as original (i.e. a list)
-x[[1]] #Returns the contents of the first item
-x[[3]]
-y <- list("Item1"=c(1:4), "Item2"="Some text")
-y
-y$Item1 #Returns the contents of the first item
-y[[1]] #Same as y$Item1
-y[["Item1"]] #Same as y$Item1
-y["Item1"] #Returns same class as original. Same as y[1]
-```
-A difference between subsetting with `$` and `[[]]` is that the double brackets can be used to compute an index, while the entry after `$` must be an actual element name. 
-```{r, eval=TRUE}
-get.name <- "Item1"
-y[[get.name]]
-y$get.name
-```
-Note that `[]` can be used with a range (for 1D objects) or ranges (for 2D objects) of objects, while `[[]]` is used to extract single entries. If a sequence of values is passed to a double bracket, then an attempt will be made to recurse down levels.
-```{r, eval=TRUE}
-y[[c(1, 1)]]
-y[[1]][[1]]
-y$Item1[[2]]
-m <- matrix(c(1:6), 2, 3)
-m[1, 1]
-m[1, ]
-m[, 1]
-```
-Notice that with matrix subsetting, dimensionality of output objects is reduced by default. This can be changed with `drop` option:
-```{r, eval=TRUE}
-m[1, 1]
-m[1, 1, drop=FALSE]
-m[1, ]
-m[1, , drop=FALSE]
-```
-Another helpful way to select portions of a list is the use of the `%in%` operator.
-```{r, eval=TRUE}
-cities <- c("Juneau","Phoenix","Little_Rock","Sacramento","Denver","Hartford","Dover","Tallahassee","Atlanta","Honolulu","Boise","Springfield","Indianapolis","Des_Moines","Topeka","Frankfort","Baton_Rouge","Augusta","Annapolis","Boston","Lansing","St._Paul","Jackson","Jefferson_City","Helena","Lincoln","Carson_City","Concord","Trenton","Santa_Fe","Albany","Raleigh","Bismarck","Columbus","Oklahoma_City","Salem","Harrisburg","Providence","Columbia","Pierre","Nashville","Austin","Salt_Lake_City","Montpelier","Richmond","Olympia","Charleston","Madison","Cheyenne")
-visited <- c("Honolulu", "Nashville", "Boston", "Amherst", "San Diego")
-visited %in% cities
-visited[visited %in% cities]
-```
-
-
-### Local files
-
-#### Setting directory
-To access and save files, it is necessary to tell R the exact location of the files. If no path is provided, R assumes you mean the current working directory.  To find out what directory you are currently working in, use `getwd()`. Providing full paths to files can help make code run easily from any directory or a different computer if remote files are being used. Alternatively, you can write your code assuming that everything is accessible based on starting from the working directory.
-
-```{r eval=FALSE}
-setwd("/Users/rebeh/data") #Absolute path on a mac
-setwd("C:/Users/rebeh/data") #Absolute path on Windows (on old versions of Windows use backslashes)
-```
-
-To find out if a directory is present, use `file.exists()`. Directories can be created with `dir.create()`. It is common in R projects to name a directory with data files `data`.
-
-#### Tabular text files
-Let's read in some local text files and explore their properties. Many data analysis projects involve tabular data stored in .txt or .csv formats of small or moderate sizes that can be easily read into R in their entirety. The two main functions to read in these types of datasets into R are `read.table()` and `read.csv()`.
-```{r eval=FALSE}
-t <- read.table(file="name.txt", #Name of file
-            header=TRUE, #Does the file have a header with names of columns?
-            sep="\t", #What is the character that separates the column entries? Often a tab, space, comma
-            skip=0, #Number of lines to skip from beginning
-            as.is=TRUE #Should character variables be left alone (alternative is to be converted into factors)?
-            na.strings=NA #The encoding of missing values. Blanks are assumed missing too.
-            comment.char="#" #Lines of the file beginning with this character are ignored. Note that # is the default
-            quote="" #Character used to quote values. "" is no quotes.
-            nrows=-1 #The number of rows to read in. Negative/invalid values are ignored
-            )
-```
-
-To see more details about this function, type `?read.table` at the prompt. A lot of helpful information is there, including hints like:
-
-* Less memory will be used if colClasses is specified as one of the six atomic vector classes
-* Using comment.char = "" will be appreciably faster than the read.table default
-* Using nrows, even as a mild over-estimate, will help memory usage
-
-The `read.csv()` function is like `read.table()` with `sep=","`. Now let's practice with an actual file. Download the GSE35571_Phenotype.txt file from the course website on Canvas, put it in your working directory, and then open it as a data frame in R with `read.table`. To see some basic attributes of the table use:
-```{r, eval=TRUE}
-t <- read.table("GSE35571_Phenotype.txt", header=TRUE)
-class(t)
-names(t)
-head(t)
-row.names(t)
-dim(t)
-```
-
-
-#### Taking a look at the data frame
-Recall that the `str()` command will show a brief display of an object's internal structure, and the `summary()` command attempts to summarize variables.
-```{r, eval=TRUE}
-str(t)
-summary(t)
-```
-
-Notice that the default behavior was to guess that all columns with strings were of class `factor`. You can modify this behavior in several ways if you'd like to avoid it. For example:
-```{r, eval=TRUE}
-t <- read.table("GSE35571_Phenotype.txt", header=TRUE, as.is=TRUE)
-str(t)
-t <- read.table("GSE35571_Phenotype.txt", header=TRUE, colClasses=c("character","factor", "factor","numeric","factor","character","numeric"))
-str(t)
-```
-
-
-#### Subsetting data frames
-Rarely do we use full data sets in the raw form in which they are loaded. Rather, we access portions of them manipulate some entries for specific analyses we have in mind. Some ways in which you can obtain a subset of a data frame are similar to those used last time:
-```{r eval=TRUE}
-head(t)
-t[1:10, 1:3]
-t[, 7]
-t$Age
-t[1:5, c("Age", "Gender")]
-```
-
-The `[]` can also be used with conditional statements to extract subsets that meet specific criteria.
-```{r eval=TRUE}
-t$Age > 12
-t[t$Age > 12, ]
-```
-
-### Large local files
-For large files, the `fread` (Fast and friendly file finagler) command has become a preferred method by many, replacing `read.table`. To use it, you have to install the [`data.table`](https://cran.r-project.org/web/packages/data.table/data.table.pdf) package.
-```{r, eval=FALSE}
-install.packages("data.table")
-```
-```{r, eval=TRUE}
-library(data.table)
-t <- fread("GSE35571_Phenotype.txt")
-str(t)
-```
-
-The `file` command is another approach to read in text files that can be helpful when files are too large to be read entirely into memory at once, or when only a portion of a file will be used. The basic format of the command is:
-```{r, eval=FALSE}
-f <- file(description = "[filename]",
-      open = "r") #type of connection "r" - read; "w" - write; "a" append
-```
-Compressed files can be opened with `gzfile()` (for files compressed by gzip) and `bzfile()` (for files compressed by bzip2) using a similar approach. The `readLines()` command can be used to get a specified number of lines from the file. The analogous command to write lines to an output file is `writeLines()`.
-```{r, eval=TRUE}
-pheno.file <- file("GSE35571_Phenotype.txt", open="r")
-pheno.file
-pheno.lines <- readLines(pheno.file, 20)
-pheno.lines
-```
-
-
-### The `dplyr` Package
-The [`dplyr()`](https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html) package is a relatively new one by Hadley Wickham of RStudio that facilitates managing of data frames. Users find it to be intuitive because its syntax is simpler than that of built-in R commands, and it is faster at performing operations. The `dplyr` package can be used with `data.table` functions to manipulate large tables, making R a suitable program for analyzing big data frames efficiently. There is a previous package called [`plyr`](https://cran.r-project.org/web/packages/plyr/) that has some similar functions. Install `dplyr` using `install.packages("dplyr")` if you need to. 
-
-We will use an NHANES file to test some `dplyr` commands. The file contains demographic variables, as well as columns corresponding to: wheezing, asthma, volatile organic compounds a person was exposed to in 24-48 hours, and two pulmonary function measures. More details are in the [data dictionary](https://github.com/HimesGroup/EPID600_2016/blob/master/DataFiles/NHANES_2007to2008_DataDictionary.md). 
-
-
-```{r eval=TRUE}
-library(dplyr)
-nhanes <- read.csv(url("https://raw.githubusercontent.com/HimesGroup/EPID600_2016/master/DataFiles/NHANES_2007to2008.csv"), header=TRUE)
-
-#Renaming of variables is simple new.variable.name=old.variable.name
-nhanes <- rename(nhanes, id=SEQN, gender=RIAGENDR, age=RIDAGEYR, race=RIDRETH1, education=DMDEDUC2, income=INDHHIN2, health.provider=HUQ040, wheezing=RDQ070, asthma=MCQ010, voc=WTSVOC2Y, fvc=SPXNFVC, fev1=SPXNFEV1) #Renaming columns
-str(nhanes)
-
-
-#To select columns
-head(select(nhanes, age:race)) #Can use names for ranges with select function
-head(select(nhanes, -(age:race))) #Can exclude ranges with "-"
-
-#To create new variables
-nhanes <- mutate(nhanes, gender = factor(gender, levels=c(1, 2), labels=c("male", "female"))) 
-head(nhanes) #Replaced existing one as factor
-nhanes <- mutate(nhanes, adult.status = factor(age>=18, labels=c("child", "adult")))
-head(nhanes) #Added new one
-
-#To get a subset of data
-nhanes.adult <- filter(nhanes, age >= 18)
-head(nhanes.adult)
-
-nhanes.adult.m <- filter(nhanes, age >= 18 & gender == "male")
-head(nhanes.adult.m)
-
-nhanes.ordered <- arrange(nhanes, education)
-head(nhanes.ordered)
-tail(nhanes.ordered)
-nhanes.ordered <- arrange(nhanes, desc(education)) #Descending order
-head(nhanes.ordered)
-tail(nhanes.ordered)
-
-nhanes.adult.child <- group_by(nhanes, adult.status)
-
-#To get some summary stats
-summarize(nhanes, age=mean(age))
-summarize(nhanes.adult.child, age=mean(age))
-```
-
-A helpful way to perform several operations with `dplyr` is to use the pipe operator `%>%`, which will chain commands without saving several intermediate tables and without having to keep explicitely referring to a data frame(s).
-```{r eval=TRUE}
-nhanes %>% 
-    mutate(adult.status = factor(age>=18, labels=c("child", "adult"))) %>% 
-    group_by(adult.status) %>% 
-    summarize(age=mean(age))
-```
-
-
-### Descriptive statistics with `dplyr` 
-A few more examples of using dplyr to get summary data.
-```{r, eval=TRUE}
-income.dis <- nhanes %>%
-                filter(income %in% c(1:10, 14, 15)) %>%
-                mutate(income.short = cut(income, breaks=c(0, 5, 10, 15), labels=c("<$25K", "$25-75K", ">$75K"))) %>%
-                count(gender, income.short)
-income.dis
-
-provider.mean <- nhanes %>% 
-                filter(health.provider %in% c(1:5)) %>%
-                group_by(health.provider) %>% 
-                summarize(age=mean(age, na.rm=TRUE))
-provider.mean
-```
-
-
-### Linear Models
-The most common function used to fit linear models, where the outcome is a continuous variable, in R is `lm`. The summary output is retrieved with `summary`. Based on our previous fev1 vs. fvc plot and correlation measures, we know a linear model is appropriate to model the relationship among them. What about other demographic variables? 
-
-```{r eval=TRUE}
-#Real data that works nicely
-fev1.lm.fit <- lm(fev1 ~ fvc, data=nhanes)
-fev1.lm.fit
-summary.fev1.lm.fit <- summary.lm(fev1.lm.fit) #Summary of results
-summary.fev1.lm.fit
-names(summary.fev1.lm.fit) #We can retrieve output from summary statistics for model fit
-summary.fev1.lm.fit$adj.r.squared
-plot(fev1 ~ fvc, data=nhanes)
-abline(fev1.lm.fit, col="red")
-confint(fev1.lm.fit) #Confidence intervals for fit
-```
-
-
-### Logistic Regression Models
-To fit a model to a binary outcome, we can use the `glm` function with the _binomial_ family as the type of function to be used for the fit. The summary output is retrieved with `summary`.
-
-```{r eval=TRUE}
-#Real data that doesn't fit tested models very well
-nhanes.asthma <- filter(nhanes, asthma %in% c(1,2))
-boxplot(fev1 ~ asthma, data=nhanes.asthma)
-barplot(table(nhanes.asthma$asthma, nhanes.asthma$gender), beside=TRUE)
-
-asthma.fit <- glm(asthma ~ fev1 + voc + age + gender + race, data=nhanes.asthma)
-summary(asthma.fit)
-exp(coef(asthma.fit)) #Odds ratios. Effect of gender is small
-confint(asthma.fit) #Confidence intervals for fit
-exp(cbind(OR=coef(asthma.fit), CI=confint(asthma.fit))) #OR and 95%CI
+```{r, eval = TRUE}
+pbetat(p0=0.8, prob=0.5, ab=c(1,1), data=c(63,17))
 ```

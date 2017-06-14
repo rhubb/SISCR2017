@@ -144,15 +144,15 @@ In this lab, we will conduct an analysis using a Bayesian logistic regression mo
 
 We will use the following variables form this data set:
 
-- type: Type of cigarette, 1 = Menthol, 0 = Regular
+- TYPE: Type of cigarette, 1 = Menthol, 0 = Regular
 
-- nic: Nicotine content, in mg
+- NIC: Nicotine content, in mg
 
-- tar: Tar content, in mg
+- TAR: Tar content, in mg
 
-- len: Length of cigarette, in mm
+- LEN: Length of cigarette, in mm
 
-- fltr: 1 = Filter, 0 = No filter
+- FLTR: 1 = Filter, 0 = No filter
 
 - copd: 1 = COPD diagnosis, 0 = no COPD diagnosis
 
@@ -164,8 +164,11 @@ copd <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/
 
 1. First carry out exploratory data analysis to summarize the variables in this data set.
 
-2. Next, let's use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter.
+2. Next, let's use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter, using relatively flat priors centered at 0.
 
 ```{r, eval = TRUE}
-
+## -- Normal priors for regression coefficients (with mean=0 and scale=10)
+copd.glm1 <- bayesglm(copd ~ TYPE + NIC + TAR, data=copd, family=binomial, prior.mean=0, 
+   prior.scale=10, prior.df=Inf)
+summary(copd.glm1)
 ```

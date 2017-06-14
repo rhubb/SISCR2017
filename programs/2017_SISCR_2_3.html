@@ -278,15 +278,50 @@ median.post &lt;-<span class="st"> </span>theta[<span class="kw">max</span>(<spa
 <div id="bayesian-regression-models" class="section level3">
 <h3>Bayesian Regression Models</h3>
 <p>In this lab, we will conduct an analysis using a Bayesian logistic regression model. Data come from a cross-sectional study of 1,225 smokers over the age of 40. Each participant was assessed for chronic obstructive pulmonary disease (COPD), and characteristics of the type of cigarette they most frequently smoke were recorded. The objective of the study was to identify associations between COPD diagnosis and cigarette characteristics.</p>
-<p>Variables are coded as follows:</p>
+<p>We will use the following variables form this data set:</p>
 <ul>
+<li><p>TYPE: Type of cigarette, 1 = Menthol, 0 = Regular</p></li>
+<li><p>NIC: Nicotine content, in mg</p></li>
+<li><p>TAR: Tar content, in mg</p></li>
+<li><p>LEN: Length of cigarette, in mm</p></li>
+<li><p>FLTR: 1 = Filter, 0 = No filter</p></li>
 <li><p>copd: 1 = COPD diagnosis, 0 = no COPD diagnosis</p></li>
-<li><p>type: Type of cigarette, 1 = Menthol, 0 = Regular</p></li>
-<li><p>nic: Nicotine content, in mg</p></li>
-<li><p>tar: Tar content, in mg</p></li>
-<li><p>len: Length of cigarette, in mm</p></li>
-<li><p>fltr: 1 = Filter, 0 = No filter</p></li>
 </ul>
+<p>You can download the data file and read it into R as follows:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">copd &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/copd.csv&quot;</span>, <span class="dt">header =</span> T)</code></pre></div>
+<ol style="list-style-type: decimal">
+<li><p>First carry out exploratory data analysis to summarize the variables in this data set.</p></li>
+<li><p>Next, let’s use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter, using relatively flat priors centered at 0.</p></li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## -- Normal priors for regression coefficients (with mean=0 and scale=10)
+copd.glm1 &lt;-<span class="st"> </span><span class="kw">bayesglm</span>(copd ~<span class="st"> </span>TYPE +<span class="st"> </span>NIC +<span class="st"> </span>TAR, <span class="dt">data=</span>copd, <span class="dt">family=</span>binomial, <span class="dt">prior.mean=</span><span class="dv">0</span>, 
+   <span class="dt">prior.scale=</span><span class="dv">10</span>, <span class="dt">prior.df=</span><span class="ot">Inf</span>)
+<span class="kw">summary</span>(copd.glm1)</code></pre></div>
+<pre><code>## 
+## Call:
+## bayesglm(formula = copd ~ TYPE + NIC + TAR, family = binomial, 
+##     data = copd, prior.mean = 0, prior.scale = 10, prior.df = Inf)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.1572  -0.4767  -0.4133  -0.3455   2.6100  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) -3.70883    0.32697 -11.343   &lt;2e-16 ***
+## TYPE         0.18560    0.20472   0.907   0.3646    
+## NIC          1.34650    0.63071   2.135   0.0328 *  
+## TAR          0.01631    0.04746   0.344   0.7311    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 772.01  on 1224  degrees of freedom
+## Residual deviance: 746.41  on 1221  degrees of freedom
+## AIC: 754.41
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
 </div>
 
 

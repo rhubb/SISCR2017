@@ -36,15 +36,20 @@ install.packages("LearnBayes")
 install.packages("arm")
 ```
 - You then need to load these libraries: 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 library(LearnBayes)
 library(arm)
 ```
+```{r, eval=TRUE, echo = FALSE, message = FALSE}
+library(LearnBayes)
+library(arm)
+```
+
 - After the first time you install the packages on your computer, you will only need to load the libraries in the future 
 
 ***
 
-### Introduction to Bayesian Computing with Learn Bayes
+### Introduction to Bayesian Computing
 
 #### Discrete prior for a continuous parameter
 
@@ -54,7 +59,7 @@ to this new treatment. Use R to generate the posterior distribution and compute 
 
     a. Flat prior on [0,1]
     
-```{r, eval = TRUE}
+    ```{r, eval = TRUE}
 #-- prior values for probability of response
 theta <- seq(0,1,length.out=99)
 
@@ -80,7 +85,7 @@ median.post <- theta[max(which(cumulative.post <=0.50))]
 
     b. Flat prior on [0.8,1]
     
-```{r, eval = TRUE}
+    ```{r, eval = TRUE}
 #-- prior values for probability of response
 theta <- seq(0.8,1,length.out=99)
 
@@ -110,13 +115,13 @@ What is the danger of using the prior in (b)?
 
     a. Flat prior on [0,1]
     
-```{r, eval = TRUE}
+    ```{r, eval = TRUE}
 triplot(prior=c(1,1),data=c(63,17), where = "topleft")
 ```
     
     b. Beta(4,4) prior
     
-```{r, eval = TRUE}
+    ```{r, eval = TRUE}
 triplot(prior=c(4,4),data=c(63,17), where = "topleft")
 ```
 
@@ -125,14 +130,14 @@ regarding this hypothesis (i.e., we think it is equally likely to be true or fal
 response probability is equally likely to take any value from 0 to 1, what are the posterior probability of the null hypothesis and
 the Bayes Factor? Is there evidence for or against our null hypothesis?
 
-```{r, eval = TRUE}
+    ```{r, eval = TRUE}
 pbetat(p0=0.8, prob=0.5, ab=c(1,1), data=c(63,17))
 ```
 
 4. Finally, what if we want to estimate the posterior predictive distribution of response for a new patient based on the data that we have observed and assuming that we initially 
 had a Beta(4,4) prior for the probability of response. (Recall that by using a conjugate prior our posterior distribution is also Beta with parameters $a+y-1$ and $b+n-y-1$.)
 
-```{r, eval = TRUE}
+    ```{r, eval = TRUE}
 pbetap(ab=c((4+63-1),(4+17-1)), n=1, s=0:1)
 ```
 
@@ -162,13 +167,95 @@ You can download the data file and read it into R as follows:
 copd <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/copd.csv", header = T)
 ```
 
-1. First carry out exploratory data analysis to summarize the variables in this data set.
+1. First carry out some exploratory data analysis to summarize the distribution of copd, cigarette type, nicotine content, and filter.
 
-2. Next, let's use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter, using relatively flat priors centered at 0.
+    ```{r, eval = TRUE}
+#-- univariate tables for categorical variables
+table(copd$copd)/sum(table(copd$copd))  
+table(copd$TYPE)/sum(table(copd$TYPE))
+table(copd$FLTR)/sum(table(copd$FLTR))
 
-```{r, eval = TRUE}
+##-- bivariate tables for categorical predictors and copd
+table(copd$TYPE,copd$copd)
+t(sweep(table(copd$copd,copd$TYPE),2,rowSums(table(copd$TYPE,copd$copd)),"/"))
+table(copd$FLTR,copd$copd)
+t(sweep(table(copd$copd,copd$FLTR),2,rowSums(table(copd$FLTR,copd$copd)),"/"))
+
+##-- summary statistics for nicotine content by copd
+by(copd$NIC,copd$copd,mean)
+by(copd$NIC,copd$copd,sd)
+boxplot(copd$NIC ~ copd$copd, xlab = "COPD", ylab = "Nicotine (mg)")
+    ```
+
+2. Next, use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter. We will explore results using severaly prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a standard frequentist logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
+
+  a. Normal(0,10) prior 
+
+    ```{r, eval = TRUE}
 ## -- Normal priors for regression coefficients (with mean=0 and scale=10)
-copd.glm1 <- bayesglm(copd ~ TYPE + NIC + TAR, data=copd, family=binomial, prior.mean=0, 
+copd.n10 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
    prior.scale=10, prior.df=Inf)
-summary(copd.glm1)
-```
+display(copd.n10)
+    ```
+  
+  b. Normal(0,0.1) prior
+
+    ```{r, eval = TRUE}
+## -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
+copd.n1 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
+   prior.scale=0.1, prior.df=Inf)
+display(copd.n1)
+    ```
+
+  c. Cauchy prior
+
+    ```{r, eval = TRUE}
+## -- Cauchy priors for regression coefficients 
+copd.cau <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
+   prior.scale=10)
+display(copd.cau)
+    ```
+  d. Frequentist logistic regression
+
+    ```{r, eval = TRUE}
+copd.glm1 <- glm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial)
+display(copd.glm1)
+    ```
+    
+3. Using one of the models you fit in (2) interpret your results.     
+
+4. How would the results in (2) differ if we had used a smaller data set? Refit the models in (2) using only the first 200 observations in the data set. What can you say about the results for cigarette type?
+
+  a. Normal(0,10) prior 
+
+    ```{r, eval = TRUE}
+## -- Normal priors for regression coefficients (with mean=0 and scale=10)
+copd.n10.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
+   prior.scale=10, prior.df=Inf)
+display(copd.n10.v2)
+    ```
+  
+  b. Normal(0,0.1) prior
+
+    ```{r, eval = TRUE}
+## -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
+copd.n1.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
+   prior.scale=0.1, prior.df=Inf)
+display(copd.n1.v2)
+    ```
+
+  c. Cauchy prior
+
+    ```{r, eval = TRUE}
+## -- Cauchy priors for regression coefficients 
+copd.cau.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
+   prior.scale=10)
+display(copd.cau.v2)
+    ```
+  d. Frequentist logistic regression
+
+    ```{r, eval = TRUE}
+copd.glm1.v2 <- glm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial)
+display(copd.glm1.v2)
+    ```
+  

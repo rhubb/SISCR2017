@@ -43,6 +43,7 @@ library(arm)
 ```{r, eval=TRUE, echo = FALSE, message = FALSE}
 library(LearnBayes)
 library(arm)
+library(pander)
 ```
 
 - After the first time you install the packages on your computer, you will only need to load the libraries in the future 
@@ -109,7 +110,7 @@ cumulative.post <- cumsum(posterior)
 median.post <- theta[max(which(cumulative.post <=0.50))]
 ```    
 
-What is the danger of using the prior in (b)?    
+    c. What is the danger of using the prior in (b)?    
     
 2. Let's analyze the same set of results using _LearnBayes_. 
 
@@ -258,4 +259,79 @@ display(copd.cau.v2)
 copd.glm1.v2 <- glm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial)
 display(copd.glm1.v2)
     ```
+    
+***
+
+### Interim Monitoring of Clinical Trials
+
+In this lab, we will examine data from a trial and determine whether or not to stop the trial at a series of interim analyses based on the posterior probability of success. We will use the function _PP()_ to simulate the posterior probability of success:
+
+```{r, eval = T}
+## n.total = total sample size for the trial
+## nullp = value for response probability under the null hypothesis
+## eta = posterior probability of p>nullp must exceed eta to stop the trial
+## data = number of successes and failures observed
+## prior.par = parameters of Beta prior for p
+## B = number of samples from posterior distribution
+
+PP <- function(n.total, nullp, eta=0.95, data=c(12,8), prior.par=c(1,1), B=1000){
+  # posterior
+  post.par <- data + prior.par
+  
+  # samples from posterior distribution
+  post.sample <- rbeta(B, post.par[1], post.par[2])
+  
+  # samples new values of x (extending to the maximum sample size)
+  x.new <- rbinom(B, size=n.total-sum(data), post.sample)
+  
+  # organize data with first column number of 'responses' and second 'non responses'
+  data.new <- cbind(x.new, n.total-sum(data)-x.new)
+  
+  # posterior parameters given predicted data
+  post.pred.par <- cbind(data.new[,1] + post.par[1], data.new[,2]+ post.par[2])
+  
+  # posterior probability that P(p > nullp |data)
+  post.pred <- pbeta(nullp, post.pred.par[,1], post.pred.par[,2], lower.tail=FALSE)
+  
+  # posterior predictive probability of success 
+  PP <- mean(post.pred > eta)
+  return(PP)
+}
+```
+
+In all interim analyses, assume that there is an existing treatment with response probability of 0.3 and that we will declare the trial to be a success if the posterior probability that the therapy under study has a higher response probability than the existing therapy exceeds 0.9. The table below provides the number of success and failures at three interim time points and at the conclusion of the study
+
+```{r, eval = TRUE, echo = FALSE}
+tab <- rbind(c("First analysis",17,22),c("Second analysis",21,39),c("Third analysis",30,50),c("End of trial",34,66))
+colnames(tab) <- c("Timepoint","Successes","Failures")
+pander(tab)
+
+```
+
+1. Using a flat prior (Beta(1,1)), would you decide to stop the trial at any of the interim analyses? Are your interim analysis decisions consistent with the final conclusion of the trial?
+
+```{r, eval = TRUE}
+##-- interim analyses
+PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(17,22),prior.par = c(1,1))
+PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(21,39),prior.par = c(1,1))
+PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(30,50),prior.par = c(1,1))
+
+#-- posterior probability of response probability exceeding 0.3
+pbeta(0.3,(34-1),(66-1), lower.tail = FALSE)
+
+```
+
+2. Repeat (1) using a prior centered at the null hypothesis such as a Beta(0.3,1). How does this affect your conclusions about whether or not to stop the trial? 
+
+```{r, eval = TRUE}
+##-- interim analyses
+PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(17,22),prior.par = c(0.3,1))
+PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(21,39),prior.par = c(0.3,1))
+PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(30,50),prior.par = c(0.3,1))
+
+#-- posterior probability of response probability exceeding 0.3
+pbeta(0.3,(34-1),(66-1), lower.tail = FALSE)
+
+```
+3. If you were designing a trial would you favor the flat prior, a prior centered at the response probability for the existing therapy, or a different prior? What considerations contribute to your decision?
   

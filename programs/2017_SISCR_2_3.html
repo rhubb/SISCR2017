@@ -240,10 +240,10 @@ mean.post &lt;-<span class="st"> </span><span class="kw">sum</span>(theta*poster
 cumulative.post &lt;-<span class="st"> </span><span class="kw">cumsum</span>(posterior)
 
 <span class="co">#-- median (approximate)</span>
-median.post &lt;-<span class="st"> </span>theta[<span class="kw">max</span>(<span class="kw">which</span>(cumulative.post &lt;=<span class="fl">0.50</span>))]</code></pre></div></li>
-</ol>
-<p>What is the danger of using the prior in (b)?</p>
-<ol start="2" style="list-style-type: decimal">
+median.post &lt;-<span class="st"> </span>theta[<span class="kw">max</span>(<span class="kw">which</span>(cumulative.post &lt;=<span class="fl">0.50</span>))]</code></pre></div>
+<ol start="3" style="list-style-type: lower-alpha">
+<li>What is the danger of using the prior in (b)?</li>
+</ol></li>
 <li><p>Let’s analyze the same set of results using <em>LearnBayes</em>.</p>
 <ol style="list-style-type: lower-alpha">
 <li>Flat prior on [0,1]</li>
@@ -458,6 +458,107 @@ copd.cau.v2 &lt;-<span class="st"> </span><span class="kw">bayesglm</span>(copd 
 ## ---
 ##   n = 200, k = 3
 ##   residual deviance = 127.2, null deviance = 130.0 (difference = 2.8)</code></pre></li>
+</ol>
+<hr />
+</div>
+<div id="interim-monitoring-of-clinical-trials" class="section level3">
+<h3>Interim Monitoring of Clinical Trials</h3>
+<p>In this lab, we will examine data from a trial and determine whether or not to stop the trial at a series of interim analyses based on the posterior probability of success. We will use the function <em>PP()</em> to simulate the posterior probability of success:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## n.total = total sample size for the trial
+## nullp = value for response probability under the null hypothesis
+## eta = posterior probability of p&gt;nullp must exceed eta to stop the trial
+## data = number of successes and failures observed
+## prior.par = parameters of Beta prior for p
+## B = number of samples from posterior distribution
+
+PP &lt;-<span class="st"> </span>function(n.total, nullp, <span class="dt">eta=</span><span class="fl">0.95</span>, <span class="dt">data=</span><span class="kw">c</span>(<span class="dv">12</span>,<span class="dv">8</span>), <span class="dt">prior.par=</span><span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">1</span>), <span class="dt">B=</span><span class="dv">1000</span>){
+  <span class="co"># posterior</span>
+  post.par &lt;-<span class="st"> </span>data +<span class="st"> </span>prior.par
+  
+  <span class="co"># samples from posterior distribution</span>
+  post.sample &lt;-<span class="st"> </span><span class="kw">rbeta</span>(B, post.par[<span class="dv">1</span>], post.par[<span class="dv">2</span>])
+  
+  <span class="co"># samples new values of x (extending to the maximum sample size)</span>
+  x.new &lt;-<span class="st"> </span><span class="kw">rbinom</span>(B, <span class="dt">size=</span>n.total-<span class="kw">sum</span>(data), post.sample)
+  
+  <span class="co"># organize data with first column number of 'responses' and second 'non responses'</span>
+  data.new &lt;-<span class="st"> </span><span class="kw">cbind</span>(x.new, n.total-<span class="kw">sum</span>(data)-x.new)
+  
+  <span class="co"># posterior parameters given predicted data</span>
+  post.pred.par &lt;-<span class="st"> </span><span class="kw">cbind</span>(data.new[,<span class="dv">1</span>] +<span class="st"> </span>post.par[<span class="dv">1</span>], data.new[,<span class="dv">2</span>]+<span class="st"> </span>post.par[<span class="dv">2</span>])
+  
+  <span class="co"># posterior probability that P(p &gt; nullp |data)</span>
+  post.pred &lt;-<span class="st"> </span><span class="kw">pbeta</span>(nullp, post.pred.par[,<span class="dv">1</span>], post.pred.par[,<span class="dv">2</span>], <span class="dt">lower.tail=</span><span class="ot">FALSE</span>)
+  
+  <span class="co"># posterior predictive probability of success </span>
+  PP &lt;-<span class="st"> </span><span class="kw">mean</span>(post.pred &gt;<span class="st"> </span>eta)
+  <span class="kw">return</span>(PP)
+}</code></pre></div>
+<p>In all interim analyses, assume that there is an existing treatment with response probability of 0.3 and that we will declare the trial to be a success if the posterior probability that the therapy under study has a higher response probability than the existing therapy exceeds 0.9. The table below provides the number of success and failures at three interim time points and at the conclusion of the study</p>
+<table style="width:56%;">
+<colgroup>
+<col width="22%"></col>
+<col width="16%"></col>
+<col width="16%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">Timepoint</th>
+<th align="center">Successes</th>
+<th align="center">Failures</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">First analysis</td>
+<td align="center">17</td>
+<td align="center">22</td>
+</tr>
+<tr class="even">
+<td align="center">Second analysis</td>
+<td align="center">21</td>
+<td align="center">39</td>
+</tr>
+<tr class="odd">
+<td align="center">Third analysis</td>
+<td align="center">30</td>
+<td align="center">50</td>
+</tr>
+<tr class="even">
+<td align="center">End of trial</td>
+<td align="center">34</td>
+<td align="center">66</td>
+</tr>
+</tbody>
+</table>
+<ol style="list-style-type: decimal">
+<li>Using a flat prior (Beta(1,1)), would you decide to stop the trial at any of the interim analyses? Are your interim analysis decisions consistent with the final conclusion of the trial?</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">##-- interim analyses
+<span class="kw">PP</span>(<span class="dt">n.total =</span> <span class="dv">100</span>, <span class="dt">nullp =</span> <span class="fl">0.3</span>, <span class="dt">eta =</span> <span class="fl">0.9</span>, <span class="dt">data =</span> <span class="kw">c</span>(<span class="dv">17</span>,<span class="dv">22</span>),<span class="dt">prior.par =</span> <span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">1</span>))</code></pre></div>
+<pre><code>## [1] 0.921</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">PP</span>(<span class="dt">n.total =</span> <span class="dv">100</span>, <span class="dt">nullp =</span> <span class="fl">0.3</span>, <span class="dt">eta =</span> <span class="fl">0.9</span>, <span class="dt">data =</span> <span class="kw">c</span>(<span class="dv">21</span>,<span class="dv">39</span>),<span class="dt">prior.par =</span> <span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">1</span>))</code></pre></div>
+<pre><code>## [1] 0.461</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">PP</span>(<span class="dt">n.total =</span> <span class="dv">100</span>, <span class="dt">nullp =</span> <span class="fl">0.3</span>, <span class="dt">eta =</span> <span class="fl">0.9</span>, <span class="dt">data =</span> <span class="kw">c</span>(<span class="dv">30</span>,<span class="dv">50</span>),<span class="dt">prior.par =</span> <span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">1</span>))</code></pre></div>
+<pre><code>## [1] 0.802</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#-- posterior probability of response probability exceeding 0.3</span>
+<span class="kw">pbeta</span>(<span class="fl">0.3</span>,(<span class="dv">34-1</span>),(<span class="dv">66-1</span>), <span class="dt">lower.tail =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>## [1] 0.7762422</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Repeat (1) using a prior centered at the null hypothesis such as a Beta(0.3,1). How does this affect your conclusions about whether or not to stop the trial?</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">##-- interim analyses
+<span class="kw">PP</span>(<span class="dt">n.total =</span> <span class="dv">100</span>, <span class="dt">nullp =</span> <span class="fl">0.3</span>, <span class="dt">eta =</span> <span class="fl">0.9</span>, <span class="dt">data =</span> <span class="kw">c</span>(<span class="dv">17</span>,<span class="dv">22</span>),<span class="dt">prior.par =</span> <span class="kw">c</span>(<span class="fl">0.3</span>,<span class="dv">1</span>))</code></pre></div>
+<pre><code>## [1] 0.876</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">PP</span>(<span class="dt">n.total =</span> <span class="dv">100</span>, <span class="dt">nullp =</span> <span class="fl">0.3</span>, <span class="dt">eta =</span> <span class="fl">0.9</span>, <span class="dt">data =</span> <span class="kw">c</span>(<span class="dv">21</span>,<span class="dv">39</span>),<span class="dt">prior.par =</span> <span class="kw">c</span>(<span class="fl">0.3</span>,<span class="dv">1</span>))</code></pre></div>
+<pre><code>## [1] 0.32</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">PP</span>(<span class="dt">n.total =</span> <span class="dv">100</span>, <span class="dt">nullp =</span> <span class="fl">0.3</span>, <span class="dt">eta =</span> <span class="fl">0.9</span>, <span class="dt">data =</span> <span class="kw">c</span>(<span class="dv">30</span>,<span class="dv">50</span>),<span class="dt">prior.par =</span> <span class="kw">c</span>(<span class="fl">0.3</span>,<span class="dv">1</span>))</code></pre></div>
+<pre><code>## [1] 0.639</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#-- posterior probability of response probability exceeding 0.3</span>
+<span class="kw">pbeta</span>(<span class="fl">0.3</span>,(<span class="dv">34-1</span>),(<span class="dv">66-1</span>), <span class="dt">lower.tail =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>## [1] 0.7762422</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>If you were designing a trial would you favor the flat prior, a prior centered at the response probability for the existing therapy, or a different prior? What considerations contribute to your decision?</li>
 </ol>
 </div>
 

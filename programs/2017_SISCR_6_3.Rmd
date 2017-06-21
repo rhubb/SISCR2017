@@ -183,11 +183,29 @@ exp(chd.n10$summary.fix)
    
 4. Since some individuals were censored prior to the end of follow-up, a more appropriate way to analyze these data is with survival analysis. Analyze the association between time to onset of CHD and behavioral pattern, adjusting for the same confounders used in your logistic regression model using:
 
-  a. Cox proportional hazard model
+  a. Cox proportional hazards model
+    ```{r, eval = T}
+chd.cph <- coxph(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs)
+summary(chd.cph)
+    ```
   
   b. Parametric survival regression
-  
-  c. Bayesian survival model
+    ```{r, eval = T}
+chd.weib <- weibreg(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs)
+summary(chd.weib)
+    ```
+  c. Bayesian non-parametric survival model
+    ```{r, eval = T}
+chd.np <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="coxph",data=wcgs)
+summary(chd.np)
+exp(chd.np$summary.fix)    
+    ```
+  c. Bayesian parametric survival model
+    ```{r, eval = T}
+chd.weib <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="weibullsurv",data=wcgs)
+summary(chd.weib)
+exp(chd.weib$summary.fix)    
+    ```
 ***
 
 ### Interim Monitoring of Clinical Trials

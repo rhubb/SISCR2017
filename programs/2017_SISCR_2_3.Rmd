@@ -148,7 +148,7 @@ pbetap(ab=c((4+63-1),(4+17-1)), n=1, s=0:1)
 
 In this lab, we will conduct an analysis using a Bayesian logistic regression model. Data come from a cross-sectional study of 1,225 smokers over the age of 40. Each participant was assessed for chronic obstructive pulmonary disease (COPD), and characteristics of the type of cigarette they most frequently smoke were recorded. The objective of the study was to identify associations between COPD diagnosis and cigarette characteristics.
 
-We will use the following variables form this data set:
+We will use the following variables from this data set:
 
 - TYPE: Type of cigarette, 1 = Menthol, 0 = Regular
 
@@ -188,7 +188,7 @@ by(copd$NIC,copd$copd,sd)
 boxplot(copd$NIC ~ copd$copd, xlab = "COPD", ylab = "Nicotine (mg)")
     ```
 
-2. Next, use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter. We will explore results using severaly prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a standard frequentist logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
+2. Next, use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter. We will explore results using several prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a standard frequentist logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
 
   a. Normal(0,10) prior 
 
@@ -220,7 +220,7 @@ display(copd.cau)
 
     ```{r, eval = TRUE}
 copd.glm1 <- glm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial)
-display(copd.glm1)
+summary(copd.glm1)
     ```
     
 3. Using one of the models you fit in (2) interpret your results.     

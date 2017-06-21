@@ -54,21 +54,37 @@ library(pander)
 
 #### Bayesian GLMs using INLA
 
-In this lab, we will conduct an analysis using a Bayesian logistic regression model. Data come from a cross-sectional study of 1,225 smokers over the age of 40. Each participant was assessed for chronic obstructive pulmonary disease (COPD), and characteristics of the type of cigarette they most frequently smoke were recorded. The objective of the study was to identify associations between COPD diagnosis and cigarette characteristics.
+In this lab, we will conduct an analysis using a Bayesian logistic regression model estimated with INLA. We will use data from the Western Collaborative Group Study (WCGS), a study of the association between cardiovascular health and a variety of risk factors including behavioral pattern conducted in a cohort of male volunteers. The scientific question of interest is whether behavioral pattern is associated with coronary heart disease (CHD). Specifically, investigators hypothesized that men with a "Type A" behavioral pattern would be more likely to experience CHD. However, because this is an observational study design it is important to account for confounding due to many factors such as cigarette smoking and elevated BMI.
 
-We will use the following variables form this data set:
+We will use the following variables from this data set:
 
-- TYPE: Type of cigarette, 1 = Menthol, 0 = Regular
+- age Age: age in years
 
-- NIC: Nicotine content, in mg
+- behpat Behavior pattern: (A1, A2, B3, B4)
 
-- TAR: Tar content, in mg
+- bmi Body mass index 
 
-- LEN: Length of cigarette, in mm
+- chd69 Coronary heart disease : 0 = no; 1 = yes
 
-- FLTR: 1 = Filter, 0 = No filter
+- chol Cholesterol: mg/100 ml
 
-- copd: 1 = COPD diagnosis, 0 = no COPD diagnosis
+- dbp Diastolic blood pressure: mm Hg
+
+- dibpat Dichotomous behavior pattern: 0 = Type B; 1 = Type A
+
+- height Height: height in inches
+
+- id Subject ID
+
+- ncigs Smoking: Cigarettes/day
+
+- sbp Systolic blood pressure: mm Hg
+
+- smoke: No = non-smoker; Yes = current smoker
+
+- weight Weight: pounds
+
+- chd01 Binary indicator of CHD: 0 = No; 1 = Yes
 
 
 You can download the data file and read it into R as follows:
@@ -76,280 +92,87 @@ You can download the data file and read it into R as follows:
 wcgs <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/wcgs.csv", header = T)
 ```
 
-    a. Flat prior on [0,1]
-    
-    ```{r, eval = TRUE}
-#-- prior values for probability of response
-theta <- seq(0,1,length.out=99)
-
-#-- likelihood times prior
-prior <- rep(1/99, 99)
-product <- dbinom(x=63, size=80, prob=theta)*prior
-
-#-- posterior is the normalized likelihood times prior
-posterior <- product/sum(product)
-
-#-- plot posterior distribution
-plot(theta, posterior, type='h', xlab=expression(~theta))
-
-#-- posterior mean
-mean.post <- sum(theta*posterior)
-
-#-- cumulative posterior distribution
-cumulative.post <- cumsum(posterior)
-
-#-- median (approximate)
-median.post <- theta[max(which(cumulative.post <=0.50))]
-```
-
-    b. Flat prior on [0.8,1]
-    
-    ```{r, eval = TRUE}
-#-- prior values for probability of response
-theta <- seq(0.8,1,length.out=99)
-
-#-- likelihood times prior
-prior <- rep(1/99, 99)
-product <- dbinom(x=63, size=80, prob=theta)*prior
-
-#-- posterior is the normalized likelihood times prior
-posterior <- product/sum(product)
-
-#-- plot posterior distribution
-plot(theta, posterior, type='h', xlab=expression(~theta))
-
-#-- posterior mean
-mean.post <- sum(theta*posterior)
-
-#-- cumulative posterior distribution
-cumulative.post <- cumsum(posterior)
-
-#-- median (approximate)
-median.post <- theta[max(which(cumulative.post <=0.50))]
-```    
-
-    c. What is the danger of using the prior in (b)?    
-    
-2. Let's analyze the same set of results using _LearnBayes_. 
-
-    a. Flat prior on [0,1]
-    
-    ```{r, eval = TRUE}
-triplot(prior=c(1,1),data=c(63,17), where = "topleft")
-```
-    
-    b. Beta(4,4) prior
-    
-    ```{r, eval = TRUE}
-triplot(prior=c(4,4),data=c(63,17), where = "topleft")
-```
-
-3. Now suppose we want to test the hypothesis that the probability of response to our new treatment is 0.8. Assuming we have equipoise
-regarding this hypothesis (i.e., we think it is equally likely to be true or false) and that our alternative hypothesis is that the
-response probability is equally likely to take any value from 0 to 1, what are the posterior probability of the null hypothesis and
-the Bayes Factor? Is there evidence for or against our null hypothesis?
-
-    ```{r, eval = TRUE}
-pbetat(p0=0.8, prob=0.5, ab=c(1,1), data=c(63,17))
-```
-
-4. Finally, what if we want to estimate the posterior predictive distribution of response for a new patient based on the data that we have observed and assuming that we initially 
-had a Beta(4,4) prior for the probability of response. (Recall that by using a conjugate prior our posterior distribution is also Beta with parameters $a+y-1$ and $b+n-y-1$.)
-
-    ```{r, eval = TRUE}
-pbetap(ab=c((4+63-1),(4+17-1)), n=1, s=0:1)
-```
-
-***
-
-### Bayesian Regression Models
-
-In this lab, we will conduct an analysis using a Bayesian logistic regression model. Data come from a cross-sectional study of 1,225 smokers over the age of 40. Each participant was assessed for chronic obstructive pulmonary disease (COPD), and characteristics of the type of cigarette they most frequently smoke were recorded. The objective of the study was to identify associations between COPD diagnosis and cigarette characteristics.
-
-We will use the following variables form this data set:
-
-- TYPE: Type of cigarette, 1 = Menthol, 0 = Regular
-
-- NIC: Nicotine content, in mg
-
-- TAR: Tar content, in mg
-
-- LEN: Length of cigarette, in mm
-
-- FLTR: 1 = Filter, 0 = No filter
-
-- copd: 1 = COPD diagnosis, 0 = no COPD diagnosis
-
-
-You can download the data file and read it into R as follows:
-```{r, eval = TRUE}
-copd <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/copd.csv", header = T)
-```
-
-1. First carry out some exploratory data analysis to summarize the distribution of copd, cigarette type, nicotine content, and filter.
+1. First carry out some exploratory data analysis to summarize the distribution of CHD, behavioral pattern, and possible confounders included in the data set. What conclusions do you reach regarding the role that number of cigarettes, BMI, and age may play in the analysis of the association between CHD and behavioral pattern?
 
     ```{r, eval = TRUE}
 #-- univariate tables for categorical variables
-table(copd$copd)/sum(table(copd$copd))  
-table(copd$TYPE)/sum(table(copd$TYPE))
-table(copd$FLTR)/sum(table(copd$FLTR))
+table(wcgs$chd69)/sum(table(wcgs$chd69))  
+table(wcgs$behpat)/sum(table(wcgs$behpat))
+table(wcgs$smoke)/sum(table(wcgs$smoke))
 
-##-- bivariate tables for categorical predictors and copd
-table(copd$TYPE,copd$copd)
-t(sweep(table(copd$copd,copd$TYPE),2,rowSums(table(copd$TYPE,copd$copd)),"/"))
-table(copd$FLTR,copd$copd)
-t(sweep(table(copd$copd,copd$FLTR),2,rowSums(table(copd$FLTR,copd$copd)),"/"))
+##-- bivariate tables for categorical predictors and CHD
+# CHD and behavioral pattern
+table(wcgs$behpat,wcgs$chd69)
+t(sweep(table(wcgs$chd69,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$chd69)),"/"))
+# CHD and smoking
+table(wcgs$smoke,wcgs$chd69)
+t(sweep(table(wcgs$chd69,wcgs$smoke),2,rowSums(table(wcgs$smoke,wcgs$chd69)),"/"))
+# Behavioral pattern and smoking
+table(wcgs$behpat,wcgs$smoke)
+t(sweep(table(wcgs$smoke,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$smoke)),"/"))
 
-##-- summary statistics for nicotine content by copd
-by(copd$NIC,copd$copd,mean)
-by(copd$NIC,copd$copd,sd)
-boxplot(copd$NIC ~ copd$copd, xlab = "COPD", ylab = "Nicotine (mg)")
+##-- summary statistics for continuous variables by CHD
+# Age
+tapply(wcgs$age,wcgs$chd69,mean)
+tapply(wcgs$age,wcgs$chd69,sd)
+boxplot(wcgs$age ~ wcgs$chd69, xlab = "CHD", ylab = "Age (years)")
+
+# BMI
+tapply(wcgs$bmi,wcgs$chd69,mean)
+tapply(wcgs$bmi,wcgs$chd69,sd)
+boxplot(wcgs$bmi ~ wcgs$chd69, xlab = "CHD", ylab = "BMI")
+
+# Number of cigarettes
+tapply(wcgs$ncigs,wcgs$chd69,mean)
+tapply(wcgs$ncigs,wcgs$chd69,sd)
+boxplot(wcgs$ncigs ~ wcgs$chd69, xlab = "CHD", ylab = "Number of Cigarettes")
+
     ```
 
-2. Next, use Bayesian logistic regression to analyze the association between COPD and predictors cigarette type, nicotine content, and filter. We will explore results using severaly prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a standard frequentist logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
+2. Next, use Bayesian logistic regression to analyze the association between CHD and behavioral pattern, accounting for possible confounders based on your results from (1). We will explore results using several prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a standard frequentist logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
 
-  a. Normal(0,10) prior 
+  a. Normal(0,10) priors 
 
     ```{r, eval = TRUE}
+
 ## -- Normal priors for regression coefficients (with mean=0 and scale=10)
-copd.n10 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
-   prior.scale=10, prior.df=Inf)
-display(copd.n10)
+chd.n10 <- inla(chd01~ factor(behpat) + smoke + age, data=wcgs, family = "binomial",
+         control.fixed=list(mean.intercept=c(0),prec.intercept=c(1/10),mean=c(0,0),prec=rep(1/10,2)))
+
+chd.n10$summary.fix
+## -- Plot posterior densities
+plot(chd.n10, plot.prior = TRUE)
     ```
   
-  b. Normal(0,0.1) prior
+  b. Normal(0,0.1) priors
 
     ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
-copd.n1 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
-   prior.scale=0.1, prior.df=Inf)
-display(copd.n1)
+
+## -- Normal priors for regression coefficients (with mean=0 and scale=0.1), N(0,10) prior for intercept
+chd.n01 <- inla(chd01~ factor(behpat) + smoke + age, data=wcgs, family = "binomial",
+         control.fixed=list(mean.intercept=c(0),prec.intercept=c(1/10),mean=c(0,0),prec=rep(10,2)))
+
+chd.n01$summary.fix
+
+## -- Plot posterior densities
+plot(chd.n01, plot.prior = TRUE)
     ```
 
-  c. Cauchy prior
+  c. Frequentist logistic regression
 
     ```{r, eval = TRUE}
-## -- Cauchy priors for regression coefficients 
-copd.cau <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
-   prior.scale=10)
-display(copd.cau)
-    ```
-  d. Frequentist logistic regression
-
-    ```{r, eval = TRUE}
-copd.glm1 <- glm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial)
-display(copd.glm1)
+chd.glm1 <- glm(chd01~ factor(behpat) + smoke + age, data=wcgs, family=binomial)
+summary(chd.glm1)
     ```
     
 3. Using one of the models you fit in (2) interpret your results.     
 
-4. How would the results in (2) differ if we had used a smaller data set? Refit the models in (2) using only the first 200 observations in the data set. What can you say about the results for cigarette type?
-
-  a. Normal(0,10) prior 
-
     ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=10)
-copd.n10.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
-   prior.scale=10, prior.df=Inf)
-display(copd.n10.v2)
-    ```
-  
-  b. Normal(0,0.1) prior
-
-    ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
-copd.n1.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
-   prior.scale=0.1, prior.df=Inf)
-display(copd.n1.v2)
-    ```
-
-  c. Cauchy prior
-
-    ```{r, eval = TRUE}
-## -- Cauchy priors for regression coefficients 
-copd.cau.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
-   prior.scale=10)
-display(copd.cau.v2)
-    ```
-  d. Frequentist logistic regression
-
-    ```{r, eval = TRUE}
-copd.glm1.v2 <- glm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial)
-display(copd.glm1.v2)
+## -- Exponentiate results to obtain odds ratios
+exp(chd.n10$summary.fix)    
     ```
     
 ***
 
 ### Interim Monitoring of Clinical Trials
 
-In this lab, we will examine data from a trial and determine whether or not to stop the trial at a series of interim analyses based on the posterior probability of success. We will use the function _PP()_ to simulate the posterior probability of success:
-
-```{r, eval = T}
-## n.total = total sample size for the trial
-## nullp = value for response probability under the null hypothesis
-## eta = posterior probability of p>nullp must exceed eta to stop the trial
-## data = number of successes and failures observed
-## prior.par = parameters of Beta prior for p
-## B = number of samples from posterior distribution
-
-PP <- function(n.total, nullp, eta=0.95, data=c(12,8), prior.par=c(1,1), B=1000){
-  # posterior
-  post.par <- data + prior.par
-  
-  # samples from posterior distribution
-  post.sample <- rbeta(B, post.par[1], post.par[2])
-  
-  # samples new values of x (extending to the maximum sample size)
-  x.new <- rbinom(B, size=n.total-sum(data), post.sample)
-  
-  # organize data with first column number of 'responses' and second 'non responses'
-  data.new <- cbind(x.new, n.total-sum(data)-x.new)
-  
-  # posterior parameters given predicted data
-  post.pred.par <- cbind(data.new[,1] + post.par[1], data.new[,2]+ post.par[2])
-  
-  # posterior probability that P(p > nullp |data)
-  post.pred <- pbeta(nullp, post.pred.par[,1], post.pred.par[,2], lower.tail=FALSE)
-  
-  # posterior predictive probability of success 
-  PP <- mean(post.pred > eta)
-  return(PP)
-}
-```
-
-In all interim analyses, assume that there is an existing treatment with response probability of 0.3 and that we will declare the trial to be a success if the posterior probability that the therapy under study has a higher response probability than the existing therapy exceeds 0.9. The table below provides the number of success and failures at three interim time points and at the conclusion of the study
-
-```{r, eval = TRUE, echo = FALSE}
-tab <- rbind(c("First analysis",17,22),c("Second analysis",21,39),c("Third analysis",30,50),c("End of trial",34,66))
-colnames(tab) <- c("Timepoint","Successes","Failures")
-pander(tab)
-
-```
-
-1. Using a flat prior (Beta(1,1)), would you decide to stop the trial at any of the interim analyses? Are your interim analysis decisions consistent with the final conclusion of the trial?
-
-```{r, eval = TRUE}
-##-- interim analyses
-PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(17,22),prior.par = c(1,1))
-PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(21,39),prior.par = c(1,1))
-PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(30,50),prior.par = c(1,1))
-
-#-- posterior probability of response probability exceeding 0.3
-pbeta(0.3,(34-1),(66-1), lower.tail = FALSE)
-
-```
-
-2. Repeat (1) using a prior centered at the null hypothesis such as a Beta(0.3,1). How does this affect your conclusions about whether or not to stop the trial? 
-
-```{r, eval = TRUE}
-##-- interim analyses
-PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(17,22),prior.par = c(0.3,1))
-PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(21,39),prior.par = c(0.3,1))
-PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(30,50),prior.par = c(0.3,1))
-
-#-- posterior probability of response probability exceeding 0.3
-pbeta(0.3,(34-1),(66-1), lower.tail = FALSE)
-
-```
-3. If you were designing a trial would you favor the flat prior, a prior centered at the response probability for the existing therapy, or a different prior? What considerations contribute to your decision?
-  

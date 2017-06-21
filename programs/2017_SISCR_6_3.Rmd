@@ -29,20 +29,27 @@ options(width = 400)
 - Open RStudio and make sure it works.
 
 ### Install R Packages
-- For this module we will be using the _INLA_ and _rjags_ packages
+- For this module we will be using the _INLA_ and _rjags_ packages for Bayesian estimation
+- We will also be using the _eha_ and _survival_ packages for survival regression
 - To use these packages you first need to install them using _install.packages()_
 ```{r, eval=FALSE}
 install.packages("INLA", repos="https://www.math.ntnu.no/inla/R/stable")
 install.packages("rjags")
+install.packages("eha")
+install.packages("survival")
 ```
 - You then need to load these libraries: 
 ```{r, eval=FALSE}
 library(INLA)
 library(rjags)
+library(eha)
+library(survival)
 ```
 ```{r, eval=TRUE, echo = FALSE, message = FALSE}
 library(INLA)
 library(rjags)
+library(eha)
+library(survival)
 library(pander)
 ```
 
@@ -54,7 +61,7 @@ library(pander)
 
 #### Bayesian GLMs using INLA
 
-In this lab, we will conduct an analysis using a Bayesian logistic regression model estimated with INLA. We will use data from the Western Collaborative Group Study (WCGS), a study of the association between cardiovascular health and a variety of risk factors including behavioral pattern conducted in a cohort of male volunteers. The scientific question of interest is whether behavioral pattern is associated with coronary heart disease (CHD). Specifically, investigators hypothesized that men with a "Type A" behavioral pattern would be more likely to experience CHD. However, because this is an observational study design it is important to account for confounding due to many factors such as cigarette smoking and elevated BMI.
+In this lab, we will conduct an analysis using a Bayesian logistic and survival regression models estimated with INLA. We will use data from the Western Collaborative Group Study (WCGS), a study of the association between cardiovascular health and behavioral pattern conducted in a cohort of male volunteers. Subjects were recruited in 1960-1961 and followed for up to 9 years for onset of coronary heart disease (CHD). The scientific question of interest is whether behavioral pattern is associated with CHD. Specifically, investigators hypothesized that men with a "Type A" behavioral pattern would be more likely to experience CHD. Because this is an observational study design it is important to account for confounding due to many factors such as cigarette smoking and elevated BMI.
 
 We will use the following variables from this data set:
 
@@ -64,7 +71,9 @@ We will use the following variables from this data set:
 
 - bmi Body mass index 
 
-- chd69 Coronary heart disease : 0 = no; 1 = yes
+- chd Indicator of CHD at any time during follow-up: 0 = no; 1 = yes
+
+- chd01 Coronary heart disease within 5 years: 0 = no; 1 = yes
 
 - chol Cholesterol: mg/100 ml
 
@@ -80,11 +89,11 @@ We will use the following variables from this data set:
 
 - sbp Systolic blood pressure: mm Hg
 
+- time Time in days from baseline to onset of CHD
+
 - smoke: No = non-smoker; Yes = current smoker
 
 - weight Weight: pounds
-
-- chd01 Binary indicator of CHD: 0 = No; 1 = Yes
 
 
 You can download the data file and read it into R as follows:
@@ -92,40 +101,40 @@ You can download the data file and read it into R as follows:
 wcgs <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/wcgs.csv", header = T)
 ```
 
-1. First carry out some exploratory data analysis to summarize the distribution of CHD, behavioral pattern, and possible confounders included in the data set. What conclusions do you reach regarding the role that number of cigarettes, BMI, and age may play in the analysis of the association between CHD and behavioral pattern?
+1. We will start by using logistic regression to analyze the association between behavioral pattern and onset of CHD within 5 years of baseline (_chd01_). Begin by conducting an exploratory data analysis to summarize the distribution of CHD, behavioral pattern, and possible confounders included in the data set. What conclusions do you reach regarding the role that number of cigarettes, BMI, and age may play in the analysis of the association between CHD and behavioral pattern?
 
     ```{r, eval = TRUE}
 #-- univariate tables for categorical variables
-table(wcgs$chd69)/sum(table(wcgs$chd69))  
+table(wcgs$chd01)/sum(table(wcgs$chd01))  
 table(wcgs$behpat)/sum(table(wcgs$behpat))
 table(wcgs$smoke)/sum(table(wcgs$smoke))
 
 ##-- bivariate tables for categorical predictors and CHD
 # CHD and behavioral pattern
-table(wcgs$behpat,wcgs$chd69)
-t(sweep(table(wcgs$chd69,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$chd69)),"/"))
+table(wcgs$behpat,wcgs$chd01)
+t(sweep(table(wcgs$chd01,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$chd01)),"/"))
 # CHD and smoking
-table(wcgs$smoke,wcgs$chd69)
-t(sweep(table(wcgs$chd69,wcgs$smoke),2,rowSums(table(wcgs$smoke,wcgs$chd69)),"/"))
+table(wcgs$smoke,wcgs$chd01)
+t(sweep(table(wcgs$chd01,wcgs$smoke),2,rowSums(table(wcgs$smoke,wcgs$chd01)),"/"))
 # Behavioral pattern and smoking
 table(wcgs$behpat,wcgs$smoke)
 t(sweep(table(wcgs$smoke,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$smoke)),"/"))
 
 ##-- summary statistics for continuous variables by CHD
 # Age
-tapply(wcgs$age,wcgs$chd69,mean)
-tapply(wcgs$age,wcgs$chd69,sd)
-boxplot(wcgs$age ~ wcgs$chd69, xlab = "CHD", ylab = "Age (years)")
+tapply(wcgs$age,wcgs$chd01,mean)
+tapply(wcgs$age,wcgs$chd01,sd)
+boxplot(wcgs$age ~ wcgs$chd01, xlab = "CHD", ylab = "Age (years)")
 
 # BMI
-tapply(wcgs$bmi,wcgs$chd69,mean)
-tapply(wcgs$bmi,wcgs$chd69,sd)
-boxplot(wcgs$bmi ~ wcgs$chd69, xlab = "CHD", ylab = "BMI")
+tapply(wcgs$bmi,wcgs$chd01,mean)
+tapply(wcgs$bmi,wcgs$chd01,sd)
+boxplot(wcgs$bmi ~ wcgs$chd01, xlab = "CHD", ylab = "BMI")
 
 # Number of cigarettes
-tapply(wcgs$ncigs,wcgs$chd69,mean)
-tapply(wcgs$ncigs,wcgs$chd69,sd)
-boxplot(wcgs$ncigs ~ wcgs$chd69, xlab = "CHD", ylab = "Number of Cigarettes")
+tapply(wcgs$ncigs,wcgs$chd01,mean)
+tapply(wcgs$ncigs,wcgs$chd01,sd)
+boxplot(wcgs$ncigs ~ wcgs$chd01, xlab = "CHD", ylab = "Number of Cigarettes")
 
     ```
 
@@ -165,13 +174,20 @@ chd.glm1 <- glm(chd01~ factor(behpat) + smoke + age, data=wcgs, family=binomial)
 summary(chd.glm1)
     ```
     
-3. Using one of the models you fit in (2) interpret your results.     
+3. Using one of the models you fit in (2) interpret your results. What do you conclude about the association between behavioral pattern and CHD? Does your choice of prior affect   
 
     ```{r, eval = TRUE}
 ## -- Exponentiate results to obtain odds ratios
 exp(chd.n10$summary.fix)    
     ```
-    
+   
+4. Since some individuals were censored prior to the end of follow-up, a more appropriate way to analyze these data is with survival analysis. Analyze the association between time to onset of CHD and behavioral pattern, adjusting for the same confounders used in your logistic regression model using:
+
+  a. Cox proportional hazard model
+  
+  b. Parametric survival regression
+  
+  c. Bayesian survival model
 ***
 
 ### Interim Monitoring of Clinical Trials

@@ -287,18 +287,16 @@ We will use the following variables from this data set:
 
 - cholreduc Average cholesterol reduction in treated group - average reduction in control grup (mmol/l)
 
-- sc Number of IHD events in control group
+- Y Number of IHD events 
 
-- nc Total number of participants in treated group
+- N Total number of participants
 
-- se Number of IHD events in treated group
-
-- ne Total number of participants in control group
-
-- or Odds ratio
+- Trt Treatment group: 1 = Intervention, 0 = Control
 
 You can download the data file and read it into R as follows:
 ```{r, eval = TRUE}
-sof <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/cholesterol.csv", header = T)
+chol <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/cholesterol.csv", header = T)
 ```
 
+
+1. Conduct a fixed-effects meta-analysis

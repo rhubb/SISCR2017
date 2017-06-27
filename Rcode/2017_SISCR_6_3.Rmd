@@ -289,7 +289,7 @@ sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, bmi = sof
       ## likelihood
          for (i in 1:n){
             totbmd[i] ~ dnorm(mu[i],tausq)
-            mu[i] <- beta0 + beta1*visit[i] + beta2*bmi[i] + beta3*age_base[i] + b0[id[i]]
+            mu[i] <- beta0 + beta1*visit[i] + b0[id[i]]
          }   
 
       ## priors
@@ -298,12 +298,10 @@ sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, bmi = sof
       }
       beta0 ~dnorm(0,0.01)
       beta1 ~dnorm(0,0.01)
-      beta2 ~dnorm(0,0.01)
-      beta3 ~dnorm(0,0.01)
       tausq <- 1/sigmasq
       taubsq <- 1/sigmabsq
-      sigmasq  ~ dunif(0,0.1)
-      sigmabsq ~ dunif(0,0.1)
+      sigmasq  ~ dunif(0,1)
+      sigmabsq ~ dunif(0,1)
     }
     "
     ```
@@ -311,21 +309,16 @@ sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, bmi = sof
     c. Use JAGS to estimate regression parameters and subject-specific random effects
     ```{r, eval = TRUE}
 # define jags model
-mod <- jags.model(file=textConnection(sof.model), data=sof.jags, inits=list(beta0 = 0, beta1 = 0, beta2 = 0, beta3 = 0, b0 = rep(0,length(unique(sof.nomiss$id))), sigmasq = 0.01, sigmabsq = 0.01), n.chains=2, n.adapt=1000)
+mod <- jags.model(file=textConnection(sof.model), data=sof.jags, inits=list(beta0 = 0, beta1 = 0, b0 = rep(0,length(unique(sof.nomiss$id))), sigmasq = 0.01, sigmabsq = 0.01), n.chains=2, n.adapt=10000)
 
-# update the model    
-update(mod, n.iter = 1000)
-    
 # specify parameters to be monitored
-params <- c("beta0","beta1","beta2","beta3","sigmasq","sigmabsq")
+params <- c("beta0","beta1","sigmasq","sigmabsq")
 
 # run jags and save posterior samples
-samps <- coda.samples(mod, params, n.iter=1000)
+samps <- coda.samples(mod, params, n.iter=10000, n.thin = 10)
 
 # summarize posterior samples
 summary(samps)
-summary(window(samps, start=1000))
-plot(samps)    
     ```
 
   d. Use diagnostic plots and statistics to evaluate model convergence. If it appears that your chains have not converged, try increasing the number of adaptation samples or number of iterations sampled in (c).
@@ -336,9 +329,23 @@ traceplot(samps)
     
 # Auto-correlation plots    
 autocorr.plot(samps)
+
+# Gelman & Rubin diagnostics
+gelman.diag(samps)
+gelman.plot(samps)
+
+# Geweke diagnostic
+geweke.diag(samps)
+
+# Raftery & Lewis diagnostic
+raftery.diag(samps)
+
+# Heidelberger & Welch diagnostic
+heidel.diag(samps)
+
     ```
 
-3. How do your results obtained using _JAGS_ compare to those from _INLA_? Using, JAGS try out several prior different prior distributions. Are results sensitive to your choice of prior?
+3. How do your results obtained using _JAGS_ compare to those from _INLA_? Using, JAGS try out several different prior distributions. Are results sensitive to your choice of prior?
 
 ***
 

@@ -29,7 +29,7 @@ options(width = 400)
 
 ### Install R Packages
 - For this module we will be using the _INLA_, _rjags_, and _coda_ packages for Bayesian estimation and MCMC convergence diagnostics
-- We will also be using the _eha_,  _survival_, and _lme4_ packages for traditional regression modeling
+- We will also be using the _eha_ and  _survival_ packages for traditional survival regression
 - To use these packages you first need to install them using _install.packages()_
 ```{r, eval=FALSE}
 install.packages("INLA", repos="https://www.math.ntnu.no/inla/R/stable")
@@ -37,7 +37,6 @@ install.packages("rjags")
 install.packages("coda")
 install.packages("eha")
 install.packages("survival")
-install.packages("lme4")
 ```
 - You then need to load these libraries: 
 ```{r, eval=FALSE}
@@ -46,7 +45,6 @@ library(rjags)
 library(coda)
 library(eha)
 library(survival)
-library(lme4)
 ```
 ```{r, eval=TRUE, echo = FALSE, message = FALSE}
 library(INLA)
@@ -55,7 +53,6 @@ library(coda)
 library(eha)
 library(survival)
 library(pander)
-library(lme4)
 ```
 
 - After the first time you install the packages on your computer, you will only need to load the libraries in the future 
@@ -239,7 +236,7 @@ We will use the following variables from this data set:
 
 You can download the data file and read it into R as follows:
 ```{r, eval = TRUE}
-sof <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/sof2.csv", header = T)
+sof <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/sof3.csv", header = T)
 ```
 
 1. Conduct an exploratory analysis of longitudinal changes in BMD using descriptive statistics and plots. How many observations are available for each woman? On average how much does BMD change over time?
@@ -274,7 +271,75 @@ summary(mod1)
 mod2 <- inla(totbmd ~ visit + bmi + age_base + f(id, model = "iid"),family="gaussian", data = sof)
 summary(mod2)    
     ```
+
+3. Next we will repeat this analysis using rjags to implement an MCMC estimation method.
+
+  a. Prepare data for use by JAGS. Be sure to include any variables you would like to incorporate into your regression model.
+    ```{r, eval = TRUE}
+# first we need to remove observations with missing data
+sof.nomiss <- na.omit(sof[,c("id","totbmd","visit","bmi","age_base")])    
     
+sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, bmi = sof.nomiss$bmi, age_base = sof.nomiss$age_base, id = rep(seq(1,length(unique(sof.nomiss$id))),times=table(sof.nomiss$id)), n = length(sof.nomiss$id), m = length(unique(sof.nomiss$id)))  
+    ```
+
+  b. Write a JAGS model specifying the likelihood and priors.
+    ```{r, eval = TRUE}
+    sof.model <- "
+    model{
+      ## likelihood
+         for (i in 1:n){
+            totbmd[i] ~ dnorm(mu[i],tausq)
+            mu[i] <- beta0 + beta1*visit[i] + beta2*bmi[i] + beta3*age_base[i] + b0[id[i]]
+         }   
+
+      ## priors
+      for (j in 1:m){
+        b0[j] ~ dnorm(0,taubsq)
+      }
+      beta0 ~dnorm(0,0.01)
+      beta1 ~dnorm(0,0.01)
+      beta2 ~dnorm(0,0.01)
+      beta3 ~dnorm(0,0.01)
+      tausq <- 1/sigmasq
+      taubsq <- 1/sigmabsq
+      sigmasq  ~ dunif(0,0.1)
+      sigmabsq ~ dunif(0,0.1)
+    }
+    "
+    ```
+    
+    c. Use JAGS to estimate regression parameters and subject-specific random effects
+    ```{r, eval = TRUE}
+# define jags model
+mod <- jags.model(file=textConnection(sof.model), data=sof.jags, inits=list(beta0 = 0, beta1 = 0, beta2 = 0, beta3 = 0, b0 = rep(0,length(unique(sof.nomiss$id))), sigmasq = 0.01, sigmabsq = 0.01), n.chains=2, n.adapt=1000)
+
+# update the model    
+update(mod, n.iter = 1000)
+    
+# specify parameters to be monitored
+params <- c("beta0","beta1","beta2","beta3","sigmasq","sigmabsq")
+
+# run jags and save posterior samples
+samps <- coda.samples(mod, params, n.iter=1000)
+
+# summarize posterior samples
+summary(samps)
+summary(window(samps, start=1000))
+plot(samps)    
+    ```
+
+  d. Use diagnostic plots and statistics to evaluate model convergence. If it appears that your chains have not converged, try increasing the number of adaptation samples or number of iterations sampled in (c).
+  
+    ```{r, eval = T}
+# Traceplots
+traceplot(samps)    
+    
+# Auto-correlation plots    
+autocorr.plot(samps)
+    ```
+
+3. How do your results obtained using _JAGS_ compare to those from _INLA_? Using, JAGS try out several prior different prior distributions. Are results sensitive to your choice of prior?
+
 ***
 
 ### Meta-Analysis
@@ -298,5 +363,54 @@ You can download the data file and read it into R as follows:
 chol <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/cholesterol.csv", header = T)
 ```
 
+1. We will conduct a series of Bayesian meta-analyses of these data to investigate the association between interventions targeting cholesterol reduction and odds of IHD.
+  
+  a. Meta-analysis ignoring between-trial heterogeneity 
+    ```{r, eval = TRUE}
+ma1 = inla(Y~ factor(Trt), data=chol, Ntrials=N, family="binomial")
+summary(ma1)
+# posterior median odds ratio
+exp(ma1$summary.fixed[2,4])
+    ```
+  b. Meta-analysis ignoring between-trial heterogeneity accounting for reductions in cholesterol level
+    ```{r, eval = TRUE}
+# created centered cholesterol reduction variable
+chol$chol.cent <- chol$ cholreduc-mean(chol$ cholreduc)   
+    
+ma2 = inla(Y~ factor(Trt) + chol.cent, data=chol, Ntrials=N, family="binomial")
+summary(ma2)
+# posterior median odds ratio
+exp(ma2$summary.fixed[2,4])
+    ```
+  c. Meta-analysis accounting for between trial heterogeneity via fixed-effects
+    ```{r, eval = TRUE}
+ma3 = inla(Y~ -1 + factor(id)+ factor(Trt), data=chol, Ntrials=N, family="binomial")
+summary(ma3)
+# posterior median odds ratio
+exp(ma3$summary.fixed[29,4])
+    ```  
+  d. Meta-analysis accounting for between trial heterogeneity via random-effects
+    ```{r, eval = TRUE}
+ma4 = inla(Y~ factor(Trt) + f(id, model = "iid", param = c(0.001,0.001)), data=chol, Ntrials=N, family="binomial")
+summary(ma4)
+# posterior median odds ratio
+exp(ma4$summary.fixed[2,4])
+    ```    
+  e. Meta-analysis accounting for between trial heterogeneity via random-effects and cholesterol reduction
+    ```{r, eval = TRUE}
+ma5 = inla(Y~ factor(Trt) + chol.cent + f(id, model = "iid", param = c(0.001,0.001)), data=chol, Ntrials=N, family="binomial")
+summary(ma5)
+# posterior median odds ratio
+exp(ma5$summary.fixed[2,4])   
+```
+  f. Meta-analysis accounting for between trial heterogeneity via random-effects and allowing for effects modification by cholesterol reduction
+    ```{r, eval = TRUE}
+ma6 = inla(Y~ factor(Trt)*chol.cent + f(id, model = "iid", param = c(0.001,0.001)), data=chol, Ntrials=N, family="binomial")
+summary(ma6)
+# posterior median odds ratio at mean cholesterol reduction
+exp(ma6$summary.fixed[2,4])   
+# effect of 1 mmol/l greater reduction in cholesterol on posterior median odds ratio
+exp(ma6$summary.fixed[4,4])   
+```
 
-1. Conduct a fixed-effects meta-analysis
+2. Overall what do you conclude about the association between cholesterol reduction and IHD? Which meta-analysis approach do you prefer in this example and why?

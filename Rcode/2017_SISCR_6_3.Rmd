@@ -214,7 +214,7 @@ exp(chd.weib$summary.fix)
 ***
 
 ### Analysis of Dependent Data
-In this lab, we will conduct an analysis using Bayesian hierarchical models estimated with _INLA_ and _rjags_. We will use data from the Study of Osteoporotic Fractures, a longitudinal study of fractures and falls in older women in the US. The study investigated risk factors associated with fractures and falls as well as changes over time in bone mineral density (BMD), an early indicator of changes in bone strength that may precede osteoporotic fractures. We will use data from this study to investigate associatins between BMD, body mass index (BMI), instrumental activities of daily living (IADL), and age at menopause.
+In this lab, we will conduct an analysis using Bayesian hierarchical models estimated with _INLA_ and _rjags_. We will use data from the Study of Osteoporotic Fractures, a longitudinal study of fractures and falls in older women in the US. The study investigated risk factors associated with fractures and falls as well as changes over time in bone mineral density (BMD), an early indicator of changes in bone strength that may precede osteoporotic fractures. We will use data from this study to investigate associations between BMD, body mass index (BMI), instrumental activities of daily living (IADL), and age at menopause.
 
 We will use the following variables from this data set:
 
@@ -239,9 +239,66 @@ We will use the following variables from this data set:
 
 You can download the data file and read it into R as follows:
 ```{r, eval = TRUE}
-wcgs <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/sof2.csv", header = T)
+sof <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/sof2.csv", header = T)
 ```
 
+1. Conduct an exploratory analysis of longitudinal changes in BMD using descriptive statistics and plots. How many observations are available for each woman? On average how much does BMD change over time?
+    ```{r, eval = TRUE}
+# Number of women in the data set
+length(unique(sof$id))
+        
+# Distribution of number of non-missing BMD measures available per woman
+summary(c(table(sof$id[!is.na(sof$totbmd)])))  
+barplot(table(table(sof$id[!is.na(sof$totbmd)])), xlab = "Number BMD measures", ylab = "Number of women")   
+
+# Correlation between visit number and BMD
+cor(sof$visit,sof$totbmd, use = "pairwise.complete.obs")
+
+# Plot of BMD across visits for first 100 women
+ptid <- unique(sof$id)
+plot(sof$visit[sof$id==ptid[1]],sof$totbmd[sof$id==ptid[1]], xlab = "Visit Number",
+     ylab = "BMD", ylim = c(0.1,1.8), type = "l", col = "grey")
+for (i in 2:100){
+lines(sof$visit[sof$id==ptid[i]],sof$totbmd[sof$id==ptid[i]], col = "grey")
+} 
+
+# Simple linear regression analysis of change in BMD over time
+summary(lm(totbmd ~ visit, data = sof))
+    ```
+    
+2. Since repeated BMD measurements made for the same woman are likely to be highly correlated, a formal analysis of change in BMD over time needs to account for within-woman correlation. This can be achieved using a Bayesian hierarchical regression model. In this model we will assume that multiple measurements made for the same woman are exchangeable conditional on subject-specific mean parameter $\theta_i$ and that these subject-specific means arise from a common distribution with hyperparameter $\mu$. Consider adding additional predictors to this model that may help to explain variation in BMD. What do you conclude about longitudinal trends in BMD?
+    ```{r, eval = TRUE}
+mod1 <- inla(totbmd ~ visit + f(id, model = "iid"),family="gaussian", data = sof)
+summary(mod1)    
+
+mod2 <- inla(totbmd ~ visit + bmi + age_base + f(id, model = "iid"),family="gaussian", data = sof)
+summary(mod2)    
+    ```
+    
 ***
 
 ### Meta-Analysis
+
+In this lab, we will conduct a meta-analysis of 28 studies investigating the effect of interventions designed to reduce cholesterol on ischemic heart disease (IHD). The outcome of interest in these studies (IHD) was occurrence of fatal or non-fatal myocardial infarction.  
+
+We will use the following variables from this data set:
+
+- id Trial id
+
+- cholreduc Average cholesterol reduction in treated group - average reduction in control grup (mmol/l)
+
+- sc Number of IHD events in control group
+
+- nc Total number of participants in treated group
+
+- se Number of IHD events in treated group
+
+- ne Total number of participants in control group
+
+- or Odds ratio
+
+You can download the data file and read it into R as follows:
+```{r, eval = TRUE}
+sof <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/cholesterol.csv", header = T)
+```
+

@@ -1,6 +1,6 @@
 ---
 title: "Module 6: Bayesian Methods for Clinical Research - Computational Methods & Application"
-date: "July 24, 2017"
+date: "July 25, 2017"
 author: "Rebecca Hubbard, Lurdes Inoue"
 output:
   html_document:
@@ -22,35 +22,40 @@ options(width = 400)
 - Click on the "Download R for [operating system]" link that is appropriate for your operating system and follow the instructions.
 - Open R and make sure it works (i.e. that no error messages come up)
 
-
 ### Install RStudio
 - Go to http://www.rstudio.com/products/rstudio/download/
 - Select the installer that is appropriate for your operating system under "Installers for Supported Platforms" and follow the instructions.
 - Open RStudio and make sure it works.
 
 ### Install R Packages
-- For this module we will be using the _INLA_ and _rjags_ packages for Bayesian estimation
-- We will also be using the _eha_ and _survival_ packages for survival regression
+- For this module we will be using the _INLA_, _rjags_, and _coda_ packages for Bayesian estimation and MCMC convergence diagnostics
+- We will also be using the _eha_,  _survival_, and _lme4_ packages for traditional regression modeling
 - To use these packages you first need to install them using _install.packages()_
 ```{r, eval=FALSE}
 install.packages("INLA", repos="https://www.math.ntnu.no/inla/R/stable")
 install.packages("rjags")
+install.packages("coda")
 install.packages("eha")
 install.packages("survival")
+install.packages("lme4")
 ```
 - You then need to load these libraries: 
 ```{r, eval=FALSE}
 library(INLA)
 library(rjags)
+library(coda)
 library(eha)
 library(survival)
+library(lme4)
 ```
 ```{r, eval=TRUE, echo = FALSE, message = FALSE}
 library(INLA)
 library(rjags)
+library(coda)
 library(eha)
 library(survival)
 library(pander)
+library(lme4)
 ```
 
 - After the first time you install the packages on your computer, you will only need to load the libraries in the future 
@@ -174,7 +179,7 @@ chd.glm1 <- glm(chd01~ factor(behpat) + smoke + age, data=wcgs, family=binomial)
 summary(chd.glm1)
     ```
     
-3. Using one of the models you fit in (2) interpret your results. What do you conclude about the association between behavioral pattern and CHD? Does your choice of prior affect   
+3. Using one of the models you fit in (2) interpret your results. What do you conclude about the association between behavioral pattern and CHD? Does your choice of prior affect your conclusions?  
 
     ```{r, eval = TRUE}
 ## -- Exponentiate results to obtain odds ratios
@@ -208,5 +213,35 @@ exp(chd.weib$summary.fix)
     ```
 ***
 
-### Interim Monitoring of Clinical Trials
+### Analysis of Dependent Data
+In this lab, we will conduct an analysis using Bayesian hierarchical models estimated with _INLA_ and _rjags_. We will use data from the Study of Osteoporotic Fractures, a longitudinal study of fractures and falls in older women in the US. The study investigated risk factors associated with fractures and falls as well as changes over time in bone mineral density (BMD), an early indicator of changes in bone strength that may precede osteoporotic fractures. We will use data from this study to investigate associatins between BMD, body mass index (BMI), instrumental activities of daily living (IADL), and age at menopause.
 
+We will use the following variables from this data set:
+
+- id Patient id
+
+- visit Visit number (continuous)
+
+- totbmd Bone mineral density (continuous)
+
+- bmi Body mass index (continuous)
+
+- n_iadl Numer of impaired instrumental activities of daily living
+
+- age_base Age at baseline (continuous)
+
+- meno_age Age at menopause (continuous)
+
+- dbp Diastolic blood pressure: mm Hg
+
+- base_totbmd Bone mineral density at baseline (continuous)
+
+
+You can download the data file and read it into R as follows:
+```{r, eval = TRUE}
+wcgs <- read.csv("https://raw.githubusercontent.com/rhubb/SISCR2017/master/data/sof2.csv", header = T)
+```
+
+***
+
+### Meta-Analysis

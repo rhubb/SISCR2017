@@ -186,25 +186,25 @@ exp(chd.n10$summary.fix)
 4. Since some individuals were censored prior to the end of follow-up, a more appropriate way to analyze these data is with survival analysis. Analyze the association between time to onset of CHD and behavioral pattern, adjusting for the same confounders used in your logistic regression model using:
 
   a. Cox proportional hazards model
-    ```{r, eval = T}
+    ```{r, eval = TRUE}
 chd.cph <- coxph(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs)
 summary(chd.cph)
     ```
   
   b. Parametric survival regression
-    ```{r, eval = T}
+    ```{r, eval = TRUE}
 chd.weib <- weibreg(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs)
 summary(chd.weib)
     ```
   c. Bayesian non-parametric survival model
-    ```{r, eval = T, cache = FALSE}
+    ```{r, eval = TRUE, cache = TRUE}
 # first rescale time to prevent numerical overflow
 chd.np <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="coxph",data=wcgs,control.hazard=list(model="rw1", n.intervals=10))
 summary(chd.np)
 exp(chd.np$summary.fix)    
     ```
   c. Bayesian parametric survival model
-    ```{r, eval = T}
+    ```{r, eval = TRUE}
 chd.weib <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="weibullsurv",data=wcgs)
 summary(chd.weib)
 exp(chd.weib$summary.fix)    
@@ -213,7 +213,7 @@ exp(chd.weib$summary.fix)
   
 ***
 
-### Analysis of Dependent Data
+### Analysis of Correlated Data
 In this lab, we will conduct an analysis using Bayesian hierarchical models estimated with _INLA_ and _rjags_. We will use data from the Study of Osteoporotic Fractures, a longitudinal study of fractures and falls in older women in the US. The study investigated risk factors associated with fractures and falls as well as changes over time in bone mineral density (BMD), an early indicator of changes in bone strength that may precede osteoporotic fractures. We will use data from this study to investigate associations between BMD, body mass index (BMI), instrumental activities of daily living (IADL), and age at menopause.
 
 We will use the following variables from this data set:
@@ -327,7 +327,7 @@ summary(samps)
 
   d. Use diagnostic plots and statistics to evaluate model convergence. If it appears that your chains have not converged, try increasing the number of adaptation samples or number of iterations sampled in (c).
   
-    ```{r, eval = T}
+    ```{r, eval = TRUE}
 # Traceplots
 traceplot(samps)    
     
@@ -349,7 +349,7 @@ heidel.diag(samps)
 
     ```
 
-3. How do your results obtained using _JAGS_ compare to those from _INLA_? Using, JAGS try out several different prior distributions. Are results sensitive to your choice of prior?
+4. How do your results obtained using _JAGS_ compare to those from _INLA_? Using, JAGS try out several different prior distributions. Are results sensitive to your choice of prior?
 
 ***
 

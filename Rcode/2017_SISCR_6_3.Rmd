@@ -63,7 +63,7 @@ library(pander)
 
 #### Bayesian GLMs using INLA
 
-In this lab, we will conduct an analysis using a Bayesian logistic and survival regression models estimated with INLA. We will use data from the Western Collaborative Group Study (WCGS), a study of the association between cardiovascular health and behavioral pattern conducted in a cohort of male volunteers. Subjects were recruited in 1960-1961 and followed for up to 9 years for onset of coronary heart disease (CHD). The scientific question of interest is whether behavioral pattern is associated with CHD. Specifically, investigators hypothesized that men with a "Type A" behavioral pattern would be more likely to experience CHD. Because this is an observational study design it is important to account for confounding due to many factors such as cigarette smoking and elevated BMI.
+In this lab, we will conduct an analysis using Bayesian logistic and survival regression models estimated with INLA. We will use data from the Western Collaborative Group Study (WCGS), a study of the association between cardiovascular health and behavioral pattern conducted in a cohort of male volunteers. Subjects were recruited in 1960-1961 and followed for up to 9 years for onset of coronary heart disease (CHD). The scientific question of interest is whether behavioral pattern is associated with CHD. Specifically, investigators hypothesized that men with a "Type A" behavioral pattern would be more likely to experience CHD. Because this is an observational study design it is important to account for confounding due to many factors such as cigarette smoking and elevated BMI.
 
 We will use the following variables from this data set:
 
@@ -140,7 +140,7 @@ boxplot(wcgs$ncigs ~ wcgs$chd01, xlab = "CHD", ylab = "Number of Cigarettes")
 
     ```
 
-2. Next, use Bayesian logistic regression to analyze the association between CHD and behavioral pattern, accounting for possible confounders based on your results from (1). We will explore results using several prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a standard frequentist logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
+2. Next, use Bayesian logistic regression to analyze the association between CHD and behavioral pattern, accounting for possible confounders based on your results from (1). We will explore results using several prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a traditional logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the traditional GLM?
 
   a. Normal(0,10) priors 
 
@@ -161,7 +161,7 @@ plot(chd.n10, plot.prior = TRUE)
 
 ## -- Normal priors for regression coefficients (with mean=0 and scale=0.1), N(0,10) prior for intercept
 chd.n01 <- inla(chd01~ factor(behpat) + smoke + age, data=wcgs, family = "binomial",
-         control.fixed=list(mean.intercept=c(0),prec.intercept=c(1/10),mean=c(0,0),prec=rep(10,2)))
+         control.fixed=list(mean.intercept=c(0),prec.intercept=c(1/10),mean=rep(0,5),prec=rep(10,5)))
 
 chd.n01$summary.fix
 
@@ -169,7 +169,7 @@ chd.n01$summary.fix
 plot(chd.n01, plot.prior = TRUE)
     ```
 
-  c. Frequentist logistic regression
+  c. Traditional logistic regression
 
     ```{r, eval = TRUE}
 chd.glm1 <- glm(chd01~ factor(behpat) + smoke + age, data=wcgs, family=binomial)
@@ -197,8 +197,9 @@ chd.weib <- weibreg(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs)
 summary(chd.weib)
     ```
   c. Bayesian non-parametric survival model
-    ```{r, eval = T}
-chd.np <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="coxph",data=wcgs)
+    ```{r, eval = T, cache = FALSE}
+# first rescale time to prevent numerical overflow
+chd.np <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="coxph",data=wcgs,control.hazard=list(model="rw1", n.intervals=10))
 summary(chd.np)
 exp(chd.np$summary.fix)    
     ```
@@ -208,6 +209,8 @@ chd.weib <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="we
 summary(chd.weib)
 exp(chd.weib$summary.fix)    
     ```
+  d. What do you conclude about the relationship between behavioral pattern and hazard of CHD? Are your conclusions affected by which estimation approach you chose? If so, which one would you prefer in this context and why?
+  
 ***
 
 ### Analysis of Dependent Data
@@ -277,9 +280,10 @@ summary(mod2)
   a. Prepare data for use by JAGS. Be sure to include any variables you would like to incorporate into your regression model.
     ```{r, eval = TRUE}
 # first we need to remove observations with missing data
-sof.nomiss <- na.omit(sof[,c("id","totbmd","visit","bmi","age_base")])    
-    
-sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, bmi = sof.nomiss$bmi, age_base = sof.nomiss$age_base, id = rep(seq(1,length(unique(sof.nomiss$id))),times=table(sof.nomiss$id)), n = length(sof.nomiss$id), m = length(unique(sof.nomiss$id)))  
+sof.nomiss <- na.omit(sof[,c("id","totbmd","visit")])    
+
+# next create a list containing the data elements that will be used by JAGS        
+sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, id = rep(seq(1,length(unique(sof.nomiss$id))),times=table(sof.nomiss$id)), n = length(sof.nomiss$id), m = length(unique(sof.nomiss$id)))  
     ```
 
   b. Write a JAGS model specifying the likelihood and priors.
@@ -307,7 +311,7 @@ sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, bmi = sof
     ```
     
     c. Use JAGS to estimate regression parameters and subject-specific random effects
-    ```{r, eval = TRUE}
+    ```{r, eval = TRUE, cache = TRUE}
 # define jags model
 mod <- jags.model(file=textConnection(sof.model), data=sof.jags, inits=list(beta0 = 0, beta1 = 0, b0 = rep(0,length(unique(sof.nomiss$id))), sigmasq = 0.01, sigmabsq = 0.01), n.chains=2, n.adapt=10000)
 

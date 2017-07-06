@@ -52,8 +52,6 @@ library(pander)
 
 ### Introduction to Bayesian Computing
 
-#### Discrete prior for a continuous parameter
-
 1. You are conducting a trial of a new treatment for thyroid cancer and have obtained results for the first 80 patients.63 patients 
 responded to treatment and 17 patients did not. We now want to obtain the posterior distribution for the probability of responding
 to this new treatment. Use R to generate the posterior distribution and compute the posterior median under the following priors:
@@ -176,13 +174,13 @@ table(copd$copd)/sum(table(copd$copd))
 table(copd$TYPE)/sum(table(copd$TYPE))
 table(copd$FLTR)/sum(table(copd$FLTR))
 
-##-- bivariate tables for categorical predictors and copd
+#-- bivariate tables for categorical predictors and copd
 table(copd$TYPE,copd$copd)
 t(sweep(table(copd$copd,copd$TYPE),2,rowSums(table(copd$TYPE,copd$copd)),"/"))
 table(copd$FLTR,copd$copd)
 t(sweep(table(copd$copd,copd$FLTR),2,rowSums(table(copd$FLTR,copd$copd)),"/"))
 
-##-- summary statistics for nicotine content by copd
+#-- summary statistics for nicotine content by copd
 by(copd$NIC,copd$copd,mean)
 by(copd$NIC,copd$copd,sd)
 boxplot(copd$NIC ~ copd$copd, xlab = "COPD", ylab = "Nicotine (mg)")
@@ -193,7 +191,7 @@ boxplot(copd$NIC ~ copd$copd, xlab = "COPD", ylab = "Nicotine (mg)")
   a. Normal(0,10) prior 
 
     ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=10)
+# -- Normal priors for regression coefficients (with mean=0 and scale=10)
 copd.n10 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
    prior.scale=10, prior.df=Inf)
 display(copd.n10)
@@ -202,7 +200,7 @@ display(copd.n10)
   b. Normal(0,0.1) prior
 
     ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
+# -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
 copd.n1 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
    prior.scale=0.1, prior.df=Inf)
 display(copd.n1)
@@ -211,7 +209,7 @@ display(copd.n1)
   c. Cauchy prior
 
     ```{r, eval = TRUE}
-## -- Cauchy priors for regression coefficients 
+# -- Cauchy priors for regression coefficients 
 copd.cau <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial, prior.mean=0, 
    prior.scale=10)
 display(copd.cau)
@@ -223,14 +221,14 @@ copd.glm1 <- glm(copd ~ TYPE + NIC + FLTR, data=copd, family=binomial)
 summary(copd.glm1)
     ```
     
-3. Using one of the models you fit in (2) interpret your results.     
+3. Using one of the Bayesian models you fit in (2), interpret your results. How does the interpretation of the Bayesian logistic regression results differ from the classical results in (d)? 
 
-4. How would the results in (2) differ if we had used a smaller data set? Refit the models in (2) using only the first 200 observations in the data set. What can you say about the results for cigarette type?
+4. How would the results in (2) differ if our data set had been smaller? Refit the models in (2) using only the first 200 observations in the data set. What can you say about the results for cigarette type?
 
   a. Normal(0,10) prior 
 
     ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=10)
+# -- Normal priors for regression coefficients (with mean=0 and scale=10)
 copd.n10.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
    prior.scale=10, prior.df=Inf)
 display(copd.n10.v2)
@@ -239,7 +237,7 @@ display(copd.n10.v2)
   b. Normal(0,0.1) prior
 
     ```{r, eval = TRUE}
-## -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
+# -- Normal priors for regression coefficients (with mean=0 and scale=0.1)
 copd.n1.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
    prior.scale=0.1, prior.df=Inf)
 display(copd.n1.v2)
@@ -248,7 +246,7 @@ display(copd.n1.v2)
   c. Cauchy prior
 
     ```{r, eval = TRUE}
-## -- Cauchy priors for regression coefficients 
+# -- Cauchy priors for regression coefficients 
 copd.cau.v2 <- bayesglm(copd ~ TYPE + NIC + FLTR, data=copd[1:200,], family=binomial, prior.mean=0, 
    prior.scale=10)
 display(copd.cau.v2)
@@ -264,15 +262,15 @@ display(copd.glm1.v2)
 
 ### Interim Monitoring of Clinical Trials
 
-In this lab, we will examine data from a trial and determine whether or not to stop the trial at a series of interim analyses based on the posterior probability of success. We will use the function _PP()_ to simulate the posterior probability of success:
+In this lab, we will examine data from a trial and determine whether or not to stop the trial at a series of interim analyses based on the posterior probability of success. We will use the function _PP()_, provided below, to simulate the posterior probability of success:
 
 ```{r, eval = T}
-## n.total = total sample size for the trial
-## nullp = value for response probability under the null hypothesis
-## eta = posterior probability of p>nullp must exceed eta to stop the trial
-## data = number of successes and failures observed
-## prior.par = parameters of Beta prior for p
-## B = number of samples from posterior distribution
+# n.total = total sample size for the trial
+# nullp = value for response probability under the null hypothesis
+# eta = posterior probability of p>nullp must exceed eta to stop the trial
+# data = number of successes and failures observed
+# prior.par = parameters of Beta prior for p
+# B = number of samples from posterior distribution
 
 PP <- function(n.total, nullp, eta=0.95, data=c(12,8), prior.par=c(1,1), B=1000){
   # posterior
@@ -308,15 +306,15 @@ pander(tab)
 
 ```
 
-1. Using a flat prior (Beta(1,1)), would you decide to stop the trial at any of the interim analyses? Are your interim analysis decisions consistent with the final conclusion of the trial?
+1. Using a flat prior (Beta(1,1)), would you decide to stop the trial at any of the interim analyses? Are your interim analysis decisions consistent with the conclusion you would draw at the end of the trial?
 
 ```{r, eval = TRUE}
-##-- interim analyses
+#-- interim analyses
 PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(17,22),prior.par = c(1,1))
 PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(21,39),prior.par = c(1,1))
 PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(30,50),prior.par = c(1,1))
 
-#-- posterior probability of response probability exceeding 0.3
+#-- posterior probability of response probability exceeding 0.3 at end of trial
 pbeta(0.3,(34-1),(66-1), lower.tail = FALSE)
 
 ```
@@ -324,7 +322,7 @@ pbeta(0.3,(34-1),(66-1), lower.tail = FALSE)
 2. Repeat (1) using a prior centered at the null hypothesis such as a Beta(0.3,1). How does this affect your conclusions about whether or not to stop the trial? 
 
 ```{r, eval = TRUE}
-##-- interim analyses
+#-- interim analyses
 PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(17,22),prior.par = c(0.3,1))
 PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(21,39),prior.par = c(0.3,1))
 PP(n.total = 100, nullp = 0.3, eta = 0.9, data = c(30,50),prior.par = c(0.3,1))

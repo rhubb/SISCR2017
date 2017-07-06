@@ -29,7 +29,7 @@ options(width = 400)
 
 ### Install R Packages
 - For this module we will be using the _INLA_, _rjags_, and _coda_ packages for Bayesian estimation and MCMC convergence diagnostics
-- We will also be using the _eha_ and  _survival_ packages for traditional survival regression
+- We will also be using the _eha_ and  _survival_ packages for classical survival regression
 - To use these packages you first need to install them using _install.packages()_
 ```{r, eval=FALSE}
 install.packages("INLA", repos="https://www.math.ntnu.no/inla/R/stable")
@@ -59,9 +59,7 @@ library(pander)
 
 ***
 
-### Introduction to Bayesian Computing
-
-#### Bayesian GLMs using INLA
+### Bayesian GLMs using INLA
 
 In this lab, we will conduct an analysis using Bayesian logistic and survival regression models estimated with INLA. We will use data from the Western Collaborative Group Study (WCGS), a study of the association between cardiovascular health and behavioral pattern conducted in a cohort of male volunteers. Subjects were recruited in 1960-1961 and followed for up to 9 years for onset of coronary heart disease (CHD). The scientific question of interest is whether behavioral pattern is associated with CHD. Specifically, investigators hypothesized that men with a "Type A" behavioral pattern would be more likely to experience CHD. Because this is an observational study design it is important to account for confounding due to many factors such as cigarette smoking and elevated BMI.
 
@@ -111,7 +109,7 @@ table(wcgs$chd01)/sum(table(wcgs$chd01))
 table(wcgs$behpat)/sum(table(wcgs$behpat))
 table(wcgs$smoke)/sum(table(wcgs$smoke))
 
-##-- bivariate tables for categorical predictors and CHD
+#-- bivariate tables for categorical predictors and CHD
 # CHD and behavioral pattern
 table(wcgs$behpat,wcgs$chd01)
 t(sweep(table(wcgs$chd01,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$chd01)),"/"))
@@ -122,7 +120,7 @@ t(sweep(table(wcgs$chd01,wcgs$smoke),2,rowSums(table(wcgs$smoke,wcgs$chd01)),"/"
 table(wcgs$behpat,wcgs$smoke)
 t(sweep(table(wcgs$smoke,wcgs$behpat),2,rowSums(table(wcgs$behpat,wcgs$smoke)),"/"))
 
-##-- summary statistics for continuous variables by CHD
+#-- summary statistics for continuous variables by CHD
 # Age
 tapply(wcgs$age,wcgs$chd01,mean)
 tapply(wcgs$age,wcgs$chd01,sd)
@@ -140,18 +138,18 @@ boxplot(wcgs$ncigs ~ wcgs$chd01, xlab = "CHD", ylab = "Number of Cigarettes")
 
     ```
 
-2. Next, use Bayesian logistic regression to analyze the association between CHD and behavioral pattern, accounting for possible confounders based on your results from (1). We will explore results using several prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a traditional logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the traditional GLM?
+2. Next, use Bayesian logistic regression to analyze the association between CHD and behavioral pattern, accounting for possible confounders based on your results from (1). We will explore results using several prior distributions. For each prior distribution can you think of a context in which this prior would be preferred? Compare your results to a classical logistic regression. How does the interpretation of the results differ for the Bayesian GLM compared to the frequentist GLM?
 
   a. Normal(0,10) priors 
 
     ```{r, eval = TRUE}
 
-## -- Normal priors for regression coefficients (with mean=0 and scale=10)
+# -- Normal priors for regression coefficients (with mean=0 and scale=10)
 chd.n10 <- inla(chd01~ factor(behpat) + smoke + age, data=wcgs, family = "binomial",
          control.fixed=list(mean.intercept=c(0),prec.intercept=c(1/10),mean=c(0,0),prec=rep(1/10,2)))
 
 chd.n10$summary.fix
-## -- Plot posterior densities
+# -- Plot posterior densities
 plot(chd.n10, plot.prior = TRUE)
     ```
   
@@ -159,27 +157,27 @@ plot(chd.n10, plot.prior = TRUE)
 
     ```{r, eval = TRUE}
 
-## -- Normal priors for regression coefficients (with mean=0 and scale=0.1), N(0,10) prior for intercept
+# -- Normal priors for regression coefficients (with mean=0 and scale=0.1), N(0,10) prior for intercept
 chd.n01 <- inla(chd01~ factor(behpat) + smoke + age, data=wcgs, family = "binomial",
          control.fixed=list(mean.intercept=c(0),prec.intercept=c(1/10),mean=rep(0,5),prec=rep(10,5)))
 
 chd.n01$summary.fix
 
-## -- Plot posterior densities
+# -- Plot posterior densities
 plot(chd.n01, plot.prior = TRUE)
     ```
 
-  c. Traditional logistic regression
+  c. Classical logistic regression
 
     ```{r, eval = TRUE}
 chd.glm1 <- glm(chd01~ factor(behpat) + smoke + age, data=wcgs, family=binomial)
 summary(chd.glm1)
     ```
     
-3. Using one of the models you fit in (2) interpret your results. What do you conclude about the association between behavioral pattern and CHD? Does your choice of prior affect your conclusions?  
+3. Using one of the Bayesian models you fit in (2), interpret your results. What do you conclude about the association between behavioral pattern and CHD? Does your choice of prior affect your conclusions? How does the interpretation of results for the Bayesian GLM differ from the results of the frequentist GLM?
 
     ```{r, eval = TRUE}
-## -- Exponentiate results to obtain odds ratios
+# -- Exponentiate results to obtain odds ratios
 exp(chd.n10$summary.fix)    
     ```
    
@@ -193,9 +191,10 @@ summary(chd.cph)
   
   b. Parametric survival regression
     ```{r, eval = TRUE}
-chd.weib <- weibreg(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs)
+chd.weib <- phreg(Surv(time, chd) ~ factor(behpat) + smoke + age, data=wcgs, dist = "weibull")
 summary(chd.weib)
     ```
+  
   c. Bayesian non-parametric survival model
     ```{r, eval = TRUE, cache = TRUE}
 # first rescale time to prevent numerical overflow
@@ -291,10 +290,10 @@ sof.jags <- list(totbmd = sof.nomiss$totbmd, visit = sof.nomiss$visit, id = rep(
     sof.model <- "
     model{
       ## likelihood
-         for (i in 1:n){
-            totbmd[i] ~ dnorm(mu[i],tausq)
-            mu[i] <- beta0 + beta1*visit[i] + b0[id[i]]
-         }   
+      for (i in 1:n){
+        totbmd[i] ~ dnorm(mu[i],tausq)
+        mu[i] <- beta0 + beta1*visit[i] + b0[id[i]]
+      }   
 
       ## priors
       for (j in 1:m){
@@ -325,7 +324,7 @@ samps <- coda.samples(mod, params, n.iter=10000, n.thin = 10)
 summary(samps)
     ```
 
-  d. Use diagnostic plots and statistics to evaluate model convergence. If it appears that your chains have not converged, try increasing the number of adaptation samples or number of iterations sampled in (c).
+  d. Use diagnostic plots and statistics to evaluate model convergence. Are there any parameters for which it appears that your chains have not converged? Can you think of any approaches that might improve the convergence of your chains?
   
     ```{r, eval = TRUE}
 # Traceplots
@@ -414,7 +413,7 @@ summary(ma5)
 # posterior median odds ratio
 exp(ma5$summary.fixed[2,4])   
 ```
-  f. Meta-analysis accounting for between trial heterogeneity via random-effects and allowing for effects modification by cholesterol reduction
+  f. Meta-analysis accounting for between trial heterogeneity via random-effects and allowing for moderation by cholesterol reduction
     ```{r, eval = TRUE}
 ma6 = inla(Y~ factor(Trt)*chol.cent + f(id, model = "iid", param = c(0.001,0.001)), data=chol, Ntrials=N, family="binomial")
 summary(ma6)

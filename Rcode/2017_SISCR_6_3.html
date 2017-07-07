@@ -288,10 +288,14 @@ chd.n01$summary.fix
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">chd.weib &lt;-<span class="st"> </span><span class="kw">phreg</span>(<span class="kw">Surv</span>(time, chd) ~<span class="st"> </span><span class="kw">factor</span>(behpat) +<span class="st"> </span>smoke +<span class="st"> </span>age, <span class="dt">data=</span>wcgs, <span class="dt">dist =</span> <span class="st">&quot;weibull&quot;</span>)
 <span class="kw">summary</span>(chd.weib)</code></pre></div></li>
 <li><p>Bayesian non-parametric survival model</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># first rescale time to prevent numerical overflow</span>
-chd.np &lt;-<span class="st"> </span><span class="kw">inla</span>(<span class="kw">inla.surv</span>(time, chd) ~<span class="st"> </span><span class="kw">factor</span>(behpat) +<span class="st"> </span>smoke +<span class="st"> </span>age, <span class="dt">family=</span><span class="st">&quot;coxph&quot;</span>,<span class="dt">data=</span>wcgs,<span class="dt">control.hazard=</span><span class="kw">list</span>(<span class="dt">model=</span><span class="st">&quot;rw1&quot;</span>, <span class="dt">n.intervals=</span><span class="dv">10</span>))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">chd.np &lt;-<span class="st"> </span><span class="kw">inla</span>(<span class="kw">inla.surv</span>(time, chd) ~<span class="st"> </span><span class="kw">factor</span>(behpat) +<span class="st"> </span>smoke +<span class="st"> </span>age, <span class="dt">family=</span><span class="st">&quot;coxph&quot;</span>,<span class="dt">data=</span>wcgs,<span class="dt">control.hazard=</span><span class="kw">list</span>(<span class="dt">model=</span><span class="st">&quot;rw1&quot;</span>, <span class="dt">n.intervals=</span><span class="dv">10</span>))
 <span class="kw">summary</span>(chd.np)
-<span class="kw">exp</span>(chd.np$summary.fix)    </code></pre></div></li>
+<span class="kw">exp</span>(chd.np$summary.fix)
+
+<span class="co"># plot baseline hazard function</span>
+<span class="kw">plot</span>(chd.np$summary.random$baseline.hazard[,<span class="st">&quot;ID&quot;</span>],
+ <span class="kw">exp</span>(chd.np$summary.fixed[<span class="dv">1</span>,<span class="dv">1</span>]+chd.np$summary.random$baseline.hazard[,<span class="st">&quot;mean&quot;</span>]), <span class="dt">type=</span><span class="st">&quot;S&quot;</span>,
+ <span class="dt">xlab =</span> <span class="st">&quot;time&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;Baseline hazard&quot;</span>)</code></pre></div></li>
 <li><p>Bayesian parametric survival model</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">chd.weib &lt;-<span class="st"> </span><span class="kw">inla</span>(<span class="kw">inla.surv</span>(time, chd) ~<span class="st"> </span><span class="kw">factor</span>(behpat) +<span class="st"> </span>smoke +<span class="st"> </span>age, <span class="dt">family=</span><span class="st">&quot;weibullsurv&quot;</span>,<span class="dt">data=</span>wcgs)
 <span class="kw">summary</span>(chd.weib)

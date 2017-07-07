@@ -197,10 +197,14 @@ summary(chd.weib)
   
   c. Bayesian non-parametric survival model
     ```{r, eval = TRUE, cache = TRUE}
-# first rescale time to prevent numerical overflow
 chd.np <- inla(inla.surv(time, chd) ~ factor(behpat) + smoke + age, family="coxph",data=wcgs,control.hazard=list(model="rw1", n.intervals=10))
 summary(chd.np)
-exp(chd.np$summary.fix)    
+exp(chd.np$summary.fix)
+
+# plot baseline hazard function
+plot(chd.np$summary.random$baseline.hazard[,"ID"],
+     exp(chd.np$summary.fixed[1,1]+chd.np$summary.random$baseline.hazard[,"mean"]), type="S",
+     xlab = "time", ylab = "Baseline hazard")
     ```
   c. Bayesian parametric survival model
     ```{r, eval = TRUE}

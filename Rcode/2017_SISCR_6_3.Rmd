@@ -38,7 +38,14 @@ install.packages("coda")
 install.packages("eha")
 install.packages("survival")
 ```
-- You then need to load these libraries: 
+
+### Install JAGS
+- You will also need to install JAGS
+- Go to https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/ 
+- Select the version that is appropriate for your operating system, and download and install the software
+
+### Load libraries
+- From within R Studio you will need to load the following libraries:
 ```{r, eval=FALSE}
 library(INLA)
 library(rjags)
